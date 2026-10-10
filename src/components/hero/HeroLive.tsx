@@ -50,8 +50,13 @@ export function HeroLive() {
     };
     let idleId = 0;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    if (w.requestIdleCallback) idleId = w.requestIdleCallback(decide, { timeout: 1000 });
-    else timeoutId = setTimeout(decide, 300);
+    // Wait for the page's own load, then an idle moment: the headline paints first (good LCP)
+    const schedule = () => {
+      if (w.requestIdleCallback) idleId = w.requestIdleCallback(decide, { timeout: 2500 });
+      else timeoutId = setTimeout(decide, 300);
+    };
+    if (document.readyState === "complete") schedule();
+    else window.addEventListener("load", schedule, { once: true });
 
     const onMove = () => {
       movedRef.current = true;
@@ -62,6 +67,7 @@ export function HeroLive() {
 
     return () => {
       cancelled = true;
+      window.removeEventListener("load", schedule);
       if (idleId && w.cancelIdleCallback) w.cancelIdleCallback(idleId);
       if (timeoutId) clearTimeout(timeoutId);
       if (hintTimer.current) clearTimeout(hintTimer.current);
