@@ -31,6 +31,7 @@
   --color-contact-line: rgb(244 247 241 / 0.18);
 
   --font-display: var(--font-fraunces), Georgia, serif;
+  --font-display-italic: var(--font-fraunces-italic), var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-instrument), system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
@@ -185,7 +186,7 @@
   letter-spacing: -0.015em;
 }
 @utility text-numeral {
-  font-family: var(--font-display);
+  font-family: var(--font-display-italic);
   font-weight: 500;
   font-style: italic;
   font-size: clamp(2.5rem, 2rem + 2vw, 3.5rem);
@@ -752,6 +753,7 @@
     color: var(--color-ink);
   }
   .hero-title em {
+    font-family: var(--font-display-italic);
     font-style: italic;
     color: var(--color-leaf);
     font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1;

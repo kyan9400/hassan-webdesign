@@ -14,15 +14,25 @@ import { RevealObserver } from "@/components/ui/RevealObserver";
 const fraunces = Fraunces({
   subsets: ["latin"],
   display: "swap",
-  axes: ["SOFT", "WONK", "opsz"],
-  style: ["normal", "italic"],
+  axes: ["SOFT", "opsz"],
+  style: ["normal"],
   variable: "--font-fraunces",
+});
+
+// The italic (accent words, numerals) is a separate, larger file: it is not preloaded so it never
+// competes with the hero text on first load; it swaps in a moment later.
+const frauncesItalic = Fraunces({
+  subsets: ["latin"],
+  display: "swap",
+  axes: ["SOFT", "WONK", "opsz"],
+  style: ["italic"],
+  variable: "--font-fraunces-italic",
+  preload: false,
 });
 
 const instrument = Instrument_Sans({
   subsets: ["latin"],
   display: "swap",
-  axes: ["wdth"],
   variable: "--font-instrument",
 });
 
@@ -72,7 +82,7 @@ export default function RootLayout({ children, modal }: { children: ReactNode; m
       lang="en"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${fraunces.variable} ${instrument.variable} ${plexMono.variable}`}
+      className={`${fraunces.variable} ${frauncesItalic.variable} ${instrument.variable} ${plexMono.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeMotionScript }} />
