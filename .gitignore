@@ -1,0 +1,36 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+
+# env files
+.env*
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# planning notes (not part of the repo)
+SPEC.md
+STACK.md
+PERF-RULES.md
+RIGHTS-RULES.md
+OWNER.md
+
+# internal planning notes (not part of the site)
+SPEC.md
+STACK.md
+PERF-RULES.md
+RIGHTS-RULES.md
+OWNER.md
+.vercel
