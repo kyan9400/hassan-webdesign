@@ -740,6 +740,13 @@
   .hero-text {
     max-width: 920px;
   }
+  /* the small reply line can sit over the tops of the 3D trees on wide screens: a paper halo keeps it legible */
+  .hero-text > .text-label {
+    text-shadow:
+      0 0 2px var(--color-paper),
+      0 0 6px var(--color-paper),
+      0 0 12px var(--color-paper);
+  }
   .hero-tag {
     display: inline-flex;
     align-items: center;
