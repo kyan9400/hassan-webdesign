@@ -1,7 +1,8 @@
-import { projects } from "@/data/projects";
+import { projects, toCard } from "@/data/projects";
 import { allShotFlags } from "@/data/screenshots.server";
-import { work } from "@/data/site";
+import { workIntro as work } from "@/data/site";
 import { SpecimenLabel } from "@/components/ui/SpecimenLabel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import { Glasshouse } from "./Glasshouse";
 
 /**
@@ -27,15 +28,15 @@ export function WorkSection() {
       <div className="container-site">
         <div className="max-w-[760px]">
           <SpecimenLabel>{work.eyebrow}</SpecimenLabel>
-          <h2 id="work-title" className="text-display-l mt-4">
+          <SectionTitle id="work-title" className="text-display-l mt-4">
             {work.title}
-          </h2>
-          <p className="text-lead mt-5 text-ink-soft">{work.lead}</p>
+          </SectionTitle>
+          <p className="text-lead mt-6 text-ink-soft">{work.lead}</p>
           <p className="mt-3 text-small text-ink-soft">{work.note}</p>
         </div>
       </div>
 
-      <Glasshouse projects={projects} shots={shots} />
+      <Glasshouse projects={projects.map(toCard)} shots={shots} />
     </section>
   );
 }

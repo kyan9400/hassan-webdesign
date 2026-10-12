@@ -48,13 +48,17 @@ export class Hummingbird {
     this.bodyMat.onBeforeCompile = (shader) => {
       shader.uniforms.uLegs = legs;
       shader.vertexShader = shader.vertexShader
-        .replace("#include <common>", "#include <common>\nattribute float aLeg;\nuniform float uLegs;")
+        .replace("#include <common>", "#include <common>\nattribute float aLeg;\nattribute float aGloss;\nuniform float uLegs;\nvarying float vGloss;")
         .replace(
           "#include <begin_vertex>",
-          "#include <begin_vertex>\nif (aLeg > 0.5) transformed = mix(vec3(0.02, -0.095, 0.0), transformed, uLegs);",
+          "#include <begin_vertex>\nvGloss = aGloss;\nif (aLeg > 0.5) transformed = mix(vec3(0.02, -0.095, 0.0), transformed, uLegs);",
         );
+      // glossy eyes (aGloss = 1) catch a highlight; the plumage stays soft
+      shader.fragmentShader = shader.fragmentShader
+        .replace("#include <common>", "#include <common>\nvarying float vGloss;")
+        .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.1, vGloss);");
     };
-    this.bodyMat.customProgramCacheKey = () => "hw-bird-body";
+    this.bodyMat.customProgramCacheKey = () => "hw-bird-body-loft";
 
     this.gorgetMat = new MeshPhysicalMaterial({
       color: new Color("#F07A9A"),
@@ -66,8 +70,8 @@ export class Hummingbird {
       envMap,
       envMapIntensity: 1.1,
     });
-    // no environment (medium tier): metal with nothing to reflect reads dark, so swap the
-    // reflections for a faint self-glow that keeps the gorget the brightest detail
+    // no environment (only if the PMREM could not be built): metal with nothing to reflect reads
+    // dark, so swap the reflections for a faint self-glow that keeps the gorget the brightest detail
     if (!envMap) {
       this.gorgetMat.metalness = 0;
       this.gorgetMat.emissive.set("#F07A9A");

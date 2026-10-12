@@ -5,6 +5,7 @@ import {
   InstancedMesh,
   Matrix4,
   MeshBasicMaterial,
+  MeshStandardMaterial,
   PlaneGeometry,
   TubeGeometry,
   Vector3,
@@ -18,6 +19,8 @@ import { MAX_PANES, PANE_H, PANE_W, R } from "./arrangement";
  *  - ribs: 12 half-ellipse tubes at the pane joints, rising from the wall top toward the centre —
  *    they suggest the roof without blocking anything;
  *  - drop shadows: one shared blurred rounded-rect texture on a plane behind each pane (18 % ink).
+ * The ironwork is metal (MeshStandardMaterial, metalness 0.8, roughness 0.35) reflecting the
+ * code-made environment, so the mullions catch the light as the camera walks.
  */
 
 const BAR = 0.05;
@@ -46,7 +49,7 @@ export class Frames {
   readonly mullions: InstancedMesh;
   readonly ribs: InstancedMesh;
   readonly shadows: InstancedMesh;
-  private readonly frameMat: MeshBasicMaterial;
+  private readonly frameMat: MeshStandardMaterial;
   private readonly shadowMat: MeshBasicMaterial;
   private readonly bars: Matrix4[];
   private readonly shadowLocal = new Matrix4();
@@ -54,7 +57,7 @@ export class Frames {
   private readonly zero = new Matrix4().makeScale(0, 0, 0);
 
   constructor(shadowTexture: Texture, ribCount = MAX_PANES + 1) {
-    this.frameMat = new MeshBasicMaterial({ color: DAY_FRAME.clone() });
+    this.frameMat = new MeshStandardMaterial({ color: DAY_FRAME.clone(), metalness: 0.8, roughness: 0.35, envMapIntensity: 1.2 });
     this.mullions = new InstancedMesh(new BoxGeometry(1, 1, 1), this.frameMat, MAX_PANES * 4);
     const hw = PANE_W / 2;
     const hh = PANE_H / 2;
@@ -75,6 +78,7 @@ export class Frames {
       transparent: true,
       opacity: 0.18,
       depthWrite: false,
+      toneMapped: false,
     });
     this.shadows = new InstancedMesh(new PlaneGeometry(PANE_W * 1.28, PANE_H * 1.42), this.shadowMat, MAX_PANES);
     this.shadowLocal.makeTranslation(0, -0.14, -0.14);

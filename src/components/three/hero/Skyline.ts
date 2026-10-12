@@ -62,7 +62,11 @@ function buildRow(towers: TowerDef[], base: number): BufferGeometry {
   return merged;
 }
 
-/** High tier: real transmission glass with the same floor lines and night windows. */
+/**
+ * High tier: real transmission glass with the same floor lines, windows, lobbies and sweep as the
+ * soft glass, plus a clear coat and the same per-panel normal "pillowing" for broken reflections.
+ * Tone-mapped (ACES) like the rest of the lit scene.
+ */
 function createPhysicalGlass(shared: GlassShared): MeshPhysicalMaterial {
   const m = new MeshPhysicalMaterial({
     color: new Color("#FFFFFF"),
@@ -74,11 +78,16 @@ function createPhysicalGlass(shared: GlassShared): MeshPhysicalMaterial {
     attenuationColor: DAY.sky.clone(),
     attenuationDistance: 2.5,
     envMapIntensity: 0.9,
+    specularIntensity: 1,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.12,
   });
   const uWindow = { value: NIGHT.sun.clone() };
   const uFern = { value: DAY.fern.clone() };
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uNight = shared.uNight;
+    shader.uniforms.uDusk = shared.uDusk;
+    shader.uniforms.uSweep = shared.uSweep;
     shader.uniforms.uWindow = uWindow;
     shader.uniforms.uFern = uFern;
     shader.vertexShader = shader.vertexShader
@@ -93,15 +102,25 @@ function createPhysicalGlass(shared: GlassShared): MeshPhysicalMaterial {
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
-        `#include <common>\nuniform float uNight;\nuniform vec3 uWindow;\nuniform vec3 uFern;\nvarying float vTowerId;\nvarying vec3 vGW;\nvarying vec3 vGN;\n${GLASS_GLSL}`,
+        `#include <common>\nuniform float uNight;\nuniform float uDusk;\nuniform float uSweep;\nuniform vec3 uWindow;\nuniform vec3 uFern;\nvarying float vTowerId;\nvarying vec3 vGW;\nvarying vec3 vGN;\n${GLASS_GLSL}`,
+      )
+      .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= hw_foot(vGW);")
+      .replace(
+        "#include <normal_fragment_maps>",
+        // pillowed panels: tilt the view-space normal by the per-cell world offset
+        "#include <normal_fragment_maps>\nnormal = normalize(normal + mat3(viewMatrix) * (hw_pillow(vGW, normalize(vGN)) - normalize(vGN)));",
       )
       .replace(
         "#include <emissivemap_fragment>",
         `#include <emissivemap_fragment>
-        vec3 hwF = hw_facade(vGW, normalize(vGN), vTowerId);
+        vec3 hwN = normalize(vGN);
+        vec3 hwF = hw_facade(vGW, hwN, vTowerId, uNight, uDusk);
+        float hwWall = 1.0 - step(0.6, hwN.y);
         totalEmissiveRadiance += vec3(0.18) * hwF.x * (1.0 - 0.6 * uNight);
-        totalEmissiveRadiance += uWindow * hwF.y * uNight * 1.6;
-        totalEmissiveRadiance += uFern * hwF.z * 0.08;`,
+        totalEmissiveRadiance += uWindow * hwF.y * 1.6;
+        totalEmissiveRadiance += uFern * hwF.z * 0.08;
+        totalEmissiveRadiance += uWindow * hw_lobby(vGW, hwN) * mix(0.25, 1.0, max(uNight, smoothstep(0.0, 0.25, uDusk))) * 0.8;
+        totalEmissiveRadiance += vec3(hw_sweep(vGW, uSweep)) * hwWall;`,
       )
       .replace("#include <opaque_fragment>", "#include <opaque_fragment>\ngl_FragColor.a = 1.0;");
   };

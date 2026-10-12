@@ -1,8 +1,8 @@
 "use client";
 
-import { hero, nav } from "@/data/site";
+import { heroUi as hero, nav } from "@/data/site";
 import { setMotion } from "@/lib/motion";
-import { toast } from "@/components/ui/Toast";
+import { toast } from "@/lib/toast";
 
 /** Bottom-left of the hero, only visible while motion is reduced (CSS reads html[data-motion]). */
 export function ReducedMotionPill() {

@@ -4,17 +4,9 @@
  * falls back to a placeholder and never breaks the build.
  */
 
-export type Sector =
-  | "food" | "beauty-health" | "real-estate" | "products" | "travel-events" | "tech";
+import { PROJECT_COUNT, type ProjectCard, type Sector } from "./sectors";
 
-export const SECTORS: { id: Sector; label: string }[] = [
-  { id: "food", label: "Cafés & food" },
-  { id: "beauty-health", label: "Beauty & health" },
-  { id: "real-estate", label: "Real estate" },
-  { id: "products", label: "Products & retail" },
-  { id: "travel-events", label: "Travel & events" },
-  { id: "tech", label: "Tech & SaaS" },
-];
+export { PROJECT_COUNT, SECTORS, pad2, type ProjectCard, type Sector } from "./sectors";
 
 export type Project = {
   slug: string;              // = GitHub repo name = route segment
@@ -245,8 +237,25 @@ export const projects: Project[] = [
   },
 ];
 
-/** Number of projects, used in copy such as "04 / 11". */
-export const PROJECT_COUNT = projects.length;
+// the client copy ("04 / 11") uses a constant: keep it in step with the list
+if (projects.length !== PROJECT_COUNT) throw new Error(`PROJECT_COUNT is ${PROJECT_COUNT}, but there are ${projects.length} projects`);
+
+/** The slim shape sent to the client gallery (smaller RSC payload, no long texts in the bundle). */
+export function toCard(p: Project): ProjectCard {
+  const { desktop, mobile, alt, altMobile } = p.screenshots;
+  return {
+    slug: p.slug,
+    order: p.order,
+    name: p.name,
+    sector: p.sector,
+    sectorLabel: p.sectorLabel,
+    oneLiner: p.oneLiner,
+    tryThis: p.tryThis,
+    accent: p.accent,
+    liveUrl: p.liveUrl,
+    screenshots: { desktop, mobile, alt, altMobile },
+  };
+}
 
 export function getProject(slug: string): Project | undefined {
   return projects.find((p) => p.slug === slug);
@@ -258,11 +267,6 @@ export function projectsBySector(sector: Sector | "all"): Project[] {
 
 export function sectorCount(sector: Sector): number {
   return projects.filter((p) => p.sector === sector).length;
-}
-
-/** "4" → "04" */
-export function pad2(n: number): string {
-  return n.toString().padStart(2, "0");
 }
 
 /** Previous / next project in display order (wraps around). */

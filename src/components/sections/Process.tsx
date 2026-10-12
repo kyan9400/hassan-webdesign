@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { processSection } from "@/data/site";
 import { SpecimenLabel } from "@/components/ui/SpecimenLabel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 
 function Bud({ i }: { i: number }) {
   return (
@@ -26,20 +27,20 @@ export function Process() {
       <div className="container-site">
         <div className="max-w-[720px]">
           <SpecimenLabel>{processSection.eyebrow}</SpecimenLabel>
-          <h2 id="process-title" className="text-display-l mt-4">
+          <SectionTitle id="process-title" className="text-display-l mt-4">
             {processSection.title}
-          </h2>
-          <p className="text-lead mt-5 text-ink-soft">{processSection.lead}</p>
+          </SectionTitle>
+          <p className="text-lead mt-6 text-ink-soft">{processSection.lead}</p>
         </div>
 
-        <ol className="process-list relative mt-12 grid gap-10 md:mt-16 md:grid-cols-4 md:gap-6" data-reveal-watch>
+        <ol className="process-list relative mt-12 grid gap-12 md:mt-16 md:grid-cols-4 md:gap-6" data-reveal-watch>
           {processSection.steps.map((s, i) => (
-            <li key={s.n} className="relative grid grid-cols-[56px_1fr] gap-x-5 md:block">
+            <li key={s.n} className="relative grid grid-cols-[56px_1fr] gap-x-6 md:block">
               {i < processSection.steps.length - 1 ? (
-                // bud centre to the next bud centre: 40px is gap-10, 24px is md:gap-6
+                // bud centre to the next bud centre: 48px is gap-12, 24px is md:gap-6
                 <span
                   aria-hidden="true"
-                  className="stem-line left-[27px] top-[28px] h-[calc(100%+40px)] w-[2px] md:left-[28px] md:top-[27px] md:h-[2px] md:w-[calc(100%+24px)]"
+                  className="stem-line left-[27px] top-[28px] h-[calc(100%+48px)] w-[2px] md:left-[28px] md:top-[27px] md:h-[2px] md:w-[calc(100%+24px)]"
                   style={{ transitionDelay: `${i * 180}ms` } as CSSProperties}
                 />
               ) : null}

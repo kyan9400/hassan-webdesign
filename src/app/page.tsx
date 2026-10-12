@@ -18,6 +18,7 @@ function jsonLd() {
     name: owner.name,
     url: siteUrl,
     jobTitle: seo.jobTitle,
+    image: `${siteUrl}/opengraph-image`,
     sameAs: [contact.github, contact.mainPortfolio, contact.telegram.url],
   };
   return {

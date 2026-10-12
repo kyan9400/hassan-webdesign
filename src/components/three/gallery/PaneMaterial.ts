@@ -7,11 +7,13 @@ import { PANE_H, PANE_R, PANE_W, PHONE, PHONE_H, PHONE_W } from "./arrangement";
  *    free "blur" from the mip chain, no extra passes — plus 30 % desaturation and dimming;
  *  - glass glare: a soft diagonal band (≤ +8 % white) that follows uPointer.x, plus a 1 px inner rim;
  *  - reveal: a bottom-up wipe with a soft edge from the placeholder to the screenshot (uReveal 0 → 1);
- *  - uDim fades the pane toward the stage colour (other panes while a project is presented).
+ *  - uDim fades the pane toward the stage colour (other panes while a project is presented);
+ *  - a glass reflection streak that travels with the walk (uWalk, ≤ 12 %) and a slight fresnel
+ *    edge brightening (6 %), so the panes read as glass while the screenshots stay readable.
  * PhoneMaterial draws the 0.03 ink bezel and the mobile screenshot in one plane (one draw call).
  */
 
-export type PaneShared = { uBg: IUniform<Color>; uNight: IUniform<number> };
+export type PaneShared = { uBg: IUniform<Color>; uNight: IUniform<number>; uWalk: IUniform<number> };
 
 const SDF = /* glsl */ `
   float sdRound(vec2 p, vec2 b, float r) {
@@ -22,9 +24,13 @@ const SDF = /* glsl */ `
 
 const VERT = /* glsl */ `
   varying vec2 vUv;
+  varying float vFres;
   void main() {
     vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vec3 n = normalize(normalMatrix * normal);
+    vFres = pow(1.0 - abs(dot(n, normalize(-mv.xyz))), 3.0);
+    gl_Position = projectionMatrix * mv;
   }
 `;
 
@@ -49,6 +55,7 @@ export function createPaneMaterial(place: Texture, shared: PaneShared): ShaderMa
     uPointer: { value: new Vector2(0.5, 0.5) },
     uBg: shared.uBg,
     uNight: shared.uNight,
+    uWalk: shared.uWalk,
     uSize: { value: new Vector2(PANE_W, PANE_H) },
   };
   return new ShaderMaterial({
@@ -65,7 +72,9 @@ export function createPaneMaterial(place: Texture, shared: PaneShared): ShaderMa
       uniform vec2 uPointer;
       uniform vec2 uSize;
       uniform vec3 uBg;
+      uniform float uWalk;
       varying vec2 vUv;
+      varying float vFres;
       ${SDF}
       void main() {
         float bias = uFrost * 3.5;
@@ -88,6 +97,11 @@ export function createPaneMaterial(place: Texture, shared: PaneShared): ShaderMa
         float d = sdRound(p, uSize * 0.5, ${PANE_R.toFixed(3)});
         float aa = max(fwidth(d), 1e-4);
         col += (1.0 - smoothstep(aa * 0.5, aa * 1.8, -d)) * mix(0.22, 0.14, uNight);
+
+        // a reflection streak that moves with the walk, and a fresnel edge (glass, not a screen)
+        float sk = vUv.x + vUv.y * 0.4 - fract(uWalk * 0.15) * 2.0 + 0.5;
+        col += exp(-sk * sk * 40.0) * 0.12 * (1.0 - 0.5 * uFrost);
+        col += vFres * 0.06;
 
         col = mix(col, uBg, uDim);
         gl_FragColor = vec4(col, 1.0);

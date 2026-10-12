@@ -1,9 +1,10 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import Link from "next/link";
+import { RouteLink as Link } from "@/components/ui/RouteLink";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Suspense,
+  lazy,
   useCallback,
   useEffect,
   useMemo,
@@ -13,14 +14,15 @@ import {
   type FocusEvent,
   type KeyboardEvent,
 } from "react";
-import type { Project, Sector } from "@/data/projects";
-import { pad2, SECTORS } from "@/data/projects";
+import type { ProjectCard as Project, Sector } from "@/data/sectors";
+import { pad2, SECTORS } from "@/data/sectors";
 import { work } from "@/data/site";
 import { getGallery, setGalleryActive, setGalleryFilter, setGalleryView, useGallery } from "@/lib/gallery-store";
 import { getGalleryMode, useGallery3dCapable, useGalleryMode, useGalleryQuality } from "@/lib/gallery-mode";
 import { getMotion } from "@/lib/motion";
 import { subscribeScrollFrame } from "@/lib/scroll-progress";
 import { clamp } from "@/lib/damp";
+import { afterHeroSettled, afterLoadIdle } from "@/lib/three-gate";
 import { announce } from "@/components/ui/LiveRegion";
 import { btnClass } from "@/components/ui/Button";
 import { IconArrowLeft, IconArrowRight } from "@/components/ui/icons";
@@ -39,7 +41,8 @@ import { WorkItem } from "./WorkItem";
  * buttons, the index, drag, snap) just scrolls the page.
  */
 
-const GlasshouseStage = dynamic(() => import("./GlasshouseStage"), { ssr: false });
+// rendered only in 3D mode after the load gate (client only), so React.lazy is enough
+const GlasshouseStage = lazy(() => import("./GlasshouseStage"));
 
 type Flags = { hasDesktop: boolean; hasMobile: boolean; hasOg: boolean };
 type Props = { projects: Project[]; shots: Record<string, Flags> };
@@ -236,22 +239,28 @@ export function Glasshouse({ projects, shots }: Props) {
     }
   }, [mode, indexEl, active, filter]);
 
-  // load the 3D stage when the section comes near (one viewport ahead)
+  // load the 3D stage when the section comes near (one viewport ahead), but never before window
+  // `load` + idle, and never while the hero's 3D chunk is still loading (one chunk at a time)
   useEffect(() => {
     if (mode !== "3d") return;
     const el = rootRef.current;
     if (!el || !("IntersectionObserver" in window)) return;
+    let cancelGate: (() => void) | null = null;
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setNear(true);
-          io.disconnect();
-        }
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        cancelGate = afterLoadIdle(() => {
+          cancelGate = afterHeroSettled(() => setNear(true));
+        });
       },
       { rootMargin: "100% 0px 100% 0px" },
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      cancelGate?.();
+    };
   }, [mode]);
 
   // after the 3D cross-fade, drop the poster image
@@ -523,20 +532,22 @@ export function Glasshouse({ projects, shots }: Props) {
                 </div>
                 <div className="gh-canvas">
                   {wantStage && quality && blockEl && stickyEl && stageEl ? (
-                    <GlasshouseStage
-                      quality={quality}
-                      projects={projects}
-                      flags={flagsList}
-                      block={blockEl}
-                      sticky={stickyEl}
-                      stage={stageEl}
-                      cell={cellEl}
-                      presentSlug={presentSlug}
-                      onReady={onReady}
-                      onLost={onLost}
-                      onOpen={onOpen}
-                      onTravel={onTravel}
-                    />
+                    <Suspense fallback={null}>
+                      <GlasshouseStage
+                        quality={quality}
+                        projects={projects}
+                        flags={flagsList}
+                        block={blockEl}
+                        sticky={stickyEl}
+                        stage={stageEl}
+                        cell={cellEl}
+                        presentSlug={presentSlug}
+                        onReady={onReady}
+                        onLost={onLost}
+                        onOpen={onOpen}
+                        onTravel={onTravel}
+                      />
+                    </Suspense>
                   ) : null}
                 </div>
               </div>
@@ -594,7 +605,7 @@ export function Glasshouse({ projects, shots }: Props) {
       </div>
 
       <div className="container-site gh-explored-out">
-        <ExploredCounter className="mt-10" />
+        <ExploredCounter className="mt-12" />
       </div>
     </div>
   );

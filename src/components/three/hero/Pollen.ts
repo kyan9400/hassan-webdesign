@@ -19,6 +19,8 @@ import { DAY, NIGHT } from "./palette";
 export type PollenShared = {
   uTime: IUniform<number>;
   uNight: IUniform<number>;
+  /** midnight scroll: the fireflies drift up out of the gardens (0 … 1) */
+  uRise?: IUniform<number>;
 };
 
 export function createPollen(tier: Tier, shared: PollenShared, uScale: IUniform<number>): Points {
@@ -43,6 +45,7 @@ export function createPollen(tier: Tier, shared: PollenShared, uScale: IUniform<
       uTime: shared.uTime,
       uNight: shared.uNight,
       uScale,
+      uRise: shared.uRise ?? { value: 0 },
       uDay: { value: DAY.pollen.clone() },
       uFire: { value: NIGHT.firefly.clone() },
     },
@@ -51,11 +54,12 @@ export function createPollen(tier: Tier, shared: PollenShared, uScale: IUniform<
       uniform float uTime;
       uniform float uNight;
       uniform float uScale;
+      uniform float uRise;
       varying float vAlpha;
       void main() {
         vec3 p = position;
         float rise = mod(uTime * 0.08 + aSeed.w, 1.0);
-        p.y += rise * 5.0;
+        p.y += rise * 5.0 + uRise * uNight * (0.6 + 1.4 * aSeed.x);
         p.x += sin(uTime * 0.35 + aSeed.x * 6.2831) * 0.25;
         p.z += cos(uTime * 0.27 + aSeed.y * 6.2831) * 0.15;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
@@ -82,6 +86,7 @@ export function createPollen(tier: Tier, shared: PollenShared, uScale: IUniform<
     `,
     transparent: true,
     depthWrite: false,
+    toneMapped: false,
   });
   const points = new Points(geo, mat);
   points.frustumCulled = false;
@@ -144,6 +149,7 @@ export class Sparks {
       `,
       transparent: true,
       depthWrite: false,
+      toneMapped: false,
     });
     this.points = new Points(geo, mat);
     this.points.frustumCulled = false;

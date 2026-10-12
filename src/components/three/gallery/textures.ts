@@ -6,8 +6,8 @@ import {
   SRGBColorSpace,
   Texture,
 } from "three";
-import type { Project } from "@/data/projects";
-import { pad2 } from "@/data/projects";
+import type { ProjectCard as Project } from "@/data/sectors";
+import { pad2 } from "@/data/sectors";
 
 /**
  * Texture pipeline for the glasshouse panes.

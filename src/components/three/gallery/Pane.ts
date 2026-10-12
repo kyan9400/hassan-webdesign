@@ -1,5 +1,5 @@
 import { BufferGeometry, Group, Mesh, Shape, ShapeGeometry, type Texture } from "three";
-import type { Project } from "@/data/projects";
+import type { ProjectCard as Project } from "@/data/sectors";
 import { PANE_H, PANE_R, PANE_W, PHONE, PHONE_H, PHONE_W } from "./arrangement";
 import { createPaneMaterial, createPhoneMaterial, type PaneShared } from "./PaneMaterial";
 import type { Placeholder } from "./textures";

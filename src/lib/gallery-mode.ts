@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { detectQuality, type Quality } from "./quality";
 import { getGallery, subscribeGallery } from "./gallery-store";
+import { afterLoadIdle } from "./three-gate";
 
 /**
  * Which way the work gallery renders (SPEC §6.1):
@@ -11,7 +12,7 @@ import { getGallery, subscribeGallery } from "./gallery-store";
  *  - "list"  the visitor picked "View as list", low tier, or no WebGL2 — a responsive grid
  * The inline <head> script sets a provisional `data-gallery` on <html> before the first paint (media
  * query + stored view + ?quality=low), so the layout is right without waiting for React. The GPU
- * tier is detected later, on idle (it needs a WebGL context), and can only move "3d" to "list".
+ * tier is detected later, after load + idle (it needs a WebGL context), and can only move "3d" to "list".
  * Without JavaScript there is no attribute and the CSS default is the list.
  */
 
@@ -66,14 +67,12 @@ function start() {
   started = true;
   window.matchMedia(WIDE).addEventListener("change", update);
   subscribeGallery(update);
-  const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
-  const decide = () => {
+  // the GPU probe needs a WebGL context: keep it off the critical path (after load + idle)
+  afterLoadIdle(() => {
     quality = detectQuality();
     update();
     emit();
-  };
-  if (w.requestIdleCallback) w.requestIdleCallback(decide, { timeout: 1500 });
-  else setTimeout(decide, 300);
+  });
   update();
 }
 

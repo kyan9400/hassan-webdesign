@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { Sector } from "@/data/projects";
+import type { Sector } from "@/data/sectors";
 
 /**
  * Tiny external store for the work gallery ("The Glasshouse"): filter, active, hover, visited, view.

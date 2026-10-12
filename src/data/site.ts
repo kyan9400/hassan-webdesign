@@ -41,6 +41,17 @@ export const seo = {
 
 export const skipLink = "Skip to content";
 
+/** Sections in page order, for the section dots (labels are the visible link text for screen readers). */
+export const sectionLinks = [
+  { id: "work", label: "Work" },
+  { id: "services", label: "Services" },
+  { id: "process", label: "Process" },
+  { id: "about", label: "About" },
+  { id: "contact", label: "Contact" },
+] as const;
+
+export const sectionDotsLabel = "Sections";
+
 export const navLinks = [
   { label: "Work", href: "/#work" },
   { label: "Services", href: "/#services" },
@@ -73,7 +84,16 @@ export const nav = {
   },
 } as const;
 
+/** The few hero strings the client needs (kept apart so the rest stays out of the JS bundle). */
+export const heroUi = {
+  hintDesktop: "Move your cursor — the flowers follow the light.",
+  hintTouch: "Tap near a flower.",
+  reducedPill: "Motion is reduced on this device.",
+  reducedButton: "Turn on full motion",
+} as const;
+
 export const hero = {
+  ...heroUi,
   tag: "Web design · Real-time 3D · AI tools",
   titleBefore: "Websites that feel ",
   titleAccent: "alive",
@@ -82,10 +102,9 @@ export const hero = {
   primary: { label: "Start a project", href: "#contact" },
   ghost: { label: "See the 11 live sites", href: "#work" },
   micro: "Replies within 24 hours · WhatsApp, Telegram or email",
-  hintDesktop: "Move your cursor — the flowers follow the light.",
-  hintTouch: "Tap near a flower.",
-  reducedPill: "Motion is reduced on this device.",
-  reducedButton: "Turn on full motion",
+  figure: "FIG. 01 — THE LIVING SKYLINE · RENDERED ONLY WHEN SOMETHING MOVES",
+  goldenHour: "GOLDEN HOUR — THE LIGHTS COME ON AS YOU SCROLL",
+  midnight: "MIDNIGHT — THE CITY GOES QUIET",
 } as const;
 
 export const proof = {
@@ -98,12 +117,16 @@ export const proof = {
   ],
 } as const;
 
-export const work = {
+/** The work section's server-rendered intro (not needed by the client gallery). */
+export const workIntro = {
   eyebrow: "01 — Selected work",
   title: "Don't take my word for it. Open them.",
   lead: "Eleven working websites with real-time 3D, each built from scratch for a fictional brand — a coffee house, a nail studio, a watchmaker, a festival. Find the one closest to your business and try it.",
   note: "Concept projects for fictional brands — real, working code.",
   skip: "Skip the gallery",
+} as const;
+
+export const work = {
   filterLabel: "Show work for",
   filterAll: "Everything",
   prev: "Previous project",
@@ -116,6 +139,7 @@ export const work = {
   tryThis: "Try this:",
   openProject: "Open project",
   liveSite: "Live site",
+  liveSoon: "Live link coming soon",
   // the accessible name starts with the visible text (WCAG 2.5.3)
   liveSiteLabel: (name: string) => `Live site: ${name} (opens in a new tab)`,
   filterAnnounce: (n: number, label: string | null) => `Showing ${n} ${n === 1 ? "project" : "projects"}${label ? ` for ${label}` : ""}.`,

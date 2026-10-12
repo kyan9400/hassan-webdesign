@@ -46,7 +46,7 @@ when you click it in the gallery (Next.js intercepting + parallel routes).
 |---|---|
 | Framework | Next.js 16.3.6 (App Router, TypeScript strict, `src/`) |
 | UI | React 19.3, Tailwind CSS 4.3 (`@theme` tokens, light "Morning garden" / dark "Night garden") |
-| 3D | three 0.186, @react-three/fiber 9.8, @react-three/drei 10.7 (Stats only), @react-three/postprocessing 3.1 (night bloom, high tier only) |
+| 3D | three 0.186, @react-three/fiber 9.8, @react-three/drei 10.7 (Stats only), night glow from additive sprites (no post-processing) |
 | Fonts | Fraunces, Instrument Sans, IBM Plex Mono via `next/font` (self-hosted) |
 | Tooling | Playwright 1.63 (dev only — the screenshot capture script) |
 

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RouteLink as Link } from "./RouteLink";
 import type { ComponentProps, ReactNode } from "react";
 
 export type ButtonVariant = "primary" | "ghost" | "text" | "accent";

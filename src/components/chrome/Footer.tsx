@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RouteLink as Link } from "@/components/ui/RouteLink";
 import { footer, owner } from "@/data/site";
 import { MotionToggle } from "./MotionToggle";
 import { ThemeToggle } from "./ThemeToggle";
@@ -8,7 +8,7 @@ export function Footer() {
   return (
     <footer className="border-t border-line bg-paper-2">
       <div className="container-site py-14 md:py-16">
-        <div className="grid gap-10 md:grid-cols-12">
+        <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-4">
             <Link href="/#top" className="wordmark" aria-label={`${owner.name} — home`}>
               {owner.wordmark}

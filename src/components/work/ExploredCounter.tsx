@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { RouteLink as Link } from "@/components/ui/RouteLink";
 import { useGallery } from "@/lib/gallery-store";
-import { PROJECT_COUNT } from "@/data/projects";
+import { PROJECT_COUNT } from "@/data/sectors";
 import { work } from "@/data/site";
 import { btnClass } from "@/components/ui/Button";
 
@@ -19,5 +19,5 @@ export function ExploredCounter({ className = "" }: { className?: string }) {
       </p>
     );
   }
-  return <p className={`text-label text-ink-soft ${className}`}>{work.explored(n)}</p>;
+  return <p className={`text-label tabular-nums text-ink-soft ${className}`}>{work.explored(n)}</p>;
 }

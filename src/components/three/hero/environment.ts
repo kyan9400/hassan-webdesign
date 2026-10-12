@@ -15,10 +15,10 @@ import {
 /**
  * A code-made studio environment (no HDRI download — RIGHTS-RULES): three light-former panels
  * (a sky panel overhead, a warm sun strip and a white rim card) inside a soft room, baked once
- * into a 128px PMREM. Equivalent to drei <Environment frames={1} resolution={128}> with three
+ * into a small PMREM (128px on high, 64px on medium: a few ms). Equivalent to drei <Environment frames={1} resolution={128}> with three
  * <Lightformer> children, without bundling drei's HDR loaders.
  */
-export function createGardenEnvironment(renderer: WebGLRenderer): Texture {
+export function createGardenEnvironment(renderer: WebGLRenderer, size = 128): Texture {
   const scene = new Scene();
   const disposables: { dispose(): void }[] = [];
 
@@ -44,7 +44,7 @@ export function createGardenEnvironment(renderer: WebGLRenderer): Texture {
   former(3, 4, "#ffffff", 2.6, [-5, 1.5, 4]); // white rim card
 
   const pmrem = new PMREMGenerator(renderer);
-  const rt = pmrem.fromScene(scene, 0.03, 0.1, 50, { size: 128 });
+  const rt = pmrem.fromScene(scene, 0.03, 0.1, 50, { size });
   pmrem.dispose();
   for (const d of disposables) d.dispose();
   return rt.texture;

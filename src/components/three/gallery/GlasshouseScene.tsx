@@ -3,7 +3,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useState } from "react";
 import type { PerspectiveCamera } from "three";
-import type { Project } from "@/data/projects";
+import type { ProjectCard as Project } from "@/data/sectors";
 import type { Quality } from "@/lib/quality";
 import { GlasshouseController, type GalleryShotFlags } from "./glasshouse";
 

@@ -6,7 +6,8 @@ import { useSyncExternalStore } from "react";
  * Quality tiers, decided BEFORE any Canvas exists (PERF-RULES rule 3).
  *  - high:   discrete GPU on a desktop
  *  - medium: Intel / AMD integrated, Mali / Adreno / PowerVR / Apple, or any touch device
- *  - low:    software renderer, no WebGL2, or ?quality=low
+ *  - low:    software renderer, a "major performance caveat" context, Save-Data, no WebGL2, or ?quality=low
+ * deviceMemory ≤ 2 GB caps the tier at medium.
  * `?quality=low|medium|high` overrides the detection (but never enables 3D without WebGL2).
  */
 
@@ -76,6 +77,21 @@ function override(): Tier | null {
 
 let cached: Quality | null = null;
 
+/** True when the browser refuses a context that would be slow (a software fallback hiding its name). */
+function hasPerformanceCaveat(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true, antialias: false });
+    if (!gl) return true;
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+type NavExtras = Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number };
+
 export function detectQuality(): Quality {
   if (cached) return cached;
   const touch = window.matchMedia("(pointer: coarse)").matches;
@@ -97,6 +113,19 @@ export function detectQuality(): Quality {
   if (webgl2 && touch && tier === "high") {
     tier = "medium";
     reason = "touch device";
+  }
+  const nav = navigator as NavExtras;
+  if (webgl2 && tier !== "low" && hasPerformanceCaveat()) {
+    tier = "low";
+    reason = "major performance caveat";
+  }
+  if (tier !== "low" && nav.connection?.saveData === true) {
+    tier = "low";
+    reason = "save-data";
+  }
+  if (tier === "high" && typeof nav.deviceMemory === "number" && nav.deviceMemory <= 2) {
+    tier = "medium";
+    reason = "low device memory";
   }
   const forced = override();
   if (forced) {

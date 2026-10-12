@@ -197,6 +197,8 @@ export class Blossoms {
         }
       `,
       side: DoubleSide,
+      // flat colours that match the poster drawing (not tone-mapped)
+      toneMapped: false,
     });
 
     this.mesh = new InstancedMesh(geo, mat, n);

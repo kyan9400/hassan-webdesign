@@ -165,9 +165,10 @@
 @utility text-display-xl {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(2.75rem, 1.45rem + 5.6vw, 6.25rem);
-  line-height: 0.96;
-  letter-spacing: -0.03em;
+  font-size: clamp(2.75rem, 1.2rem + 6.2vw, 7.5rem);
+  line-height: 0.94;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
   font-variation-settings: "opsz" 144, "SOFT" 50;
 }
 @utility text-display-l {
@@ -193,6 +194,7 @@
   line-height: 1;
   letter-spacing: -0.02em;
   font-variation-settings: "WONK" 1;
+  font-variant-numeric: tabular-nums;
 }
 @utility text-title {
   font-family: var(--font-sans);
@@ -230,6 +232,7 @@
   font-weight: 500;
   font-size: 1.125rem;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 @utility leaf-radius {
   border-radius: var(--leaf-radius);
@@ -381,6 +384,13 @@
   .btn:active {
     transform: scale(0.98);
   }
+  /* magnetic buttons lean with the translate property (ScrollChrome), never transform or size */
+  .btn[data-magnetic] {
+    transition:
+      transform var(--dur-micro) var(--ease-settle),
+      opacity var(--dur-micro) var(--ease-settle),
+      translate var(--dur-ui) var(--ease-settle);
+  }
   .btn-sm {
     min-height: 44px;
     padding: 10px 18px;
@@ -485,6 +495,7 @@
     font-weight: 500;
     font-size: 1.125rem;
     line-height: 1;
+    font-variant-numeric: tabular-nums;
     border: 1px solid color-mix(in srgb, var(--color-sun) 55%, var(--color-line));
   }
   .nursery-tag::before {
@@ -671,14 +682,31 @@
     position: relative;
     isolation: isolate;
     min-height: var(--hero-h);
-    display: flex;
-    flex-direction: column;
     overflow: clip;
     background:
       radial-gradient(60% 50% at 80% 10%, var(--sky-1), transparent 100%),
       radial-gradient(50% 40% at 10% 90%, var(--sky-2), transparent 100%),
       radial-gradient(30% 30% at 60% 70%, var(--sky-3), transparent 100%),
       var(--color-paper);
+  }
+  /* the stage: the whole first screen; it pins while the golden-hour track scrolls by */
+  .hero-sticky {
+    position: relative;
+    min-height: var(--hero-h);
+    display: flex;
+    flex-direction: column;
+  }
+  /* golden hour: a taller track with a pinned stage, full motion + ≥ 768px + live 3D only.
+     data-track is set only when the 3D is live and the reader is at the top (no shift). */
+  @media (min-width: 768px) {
+    :root[data-motion="full"] .hero[data-hero="live"][data-track="tall"] {
+      height: calc(var(--hero-h) + 75svh);
+    }
+    :root[data-motion="full"] .hero[data-hero="live"][data-track="tall"] .hero-sticky {
+      position: sticky;
+      top: 0;
+      height: var(--hero-h);
+    }
   }
   .hero-art {
     position: absolute;
@@ -722,6 +750,32 @@
   .hero[data-hero="live"] .hero-poster {
     opacity: 0;
   }
+  /* golden hour sky: a pre-drawn gradient; only its opacity changes (set by the 3D on scroll) */
+  .hero-dusk {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    background:
+      radial-gradient(70% 55% at 62% 78%, rgb(255 179 107 / 0.55), transparent 70%),
+      linear-gradient(180deg, rgb(240 122 154 / 0.22) 0%, rgb(255 200 140 / 0.3) 55%, rgb(255 179 107 / 0.18) 100%);
+    mix-blend-mode: multiply;
+  }
+  :root[data-theme="dark"] .hero-dusk {
+    background:
+      radial-gradient(70% 55% at 62% 70%, rgb(27 58 92 / 0.6), transparent 70%),
+      linear-gradient(180deg, rgb(5 12 30 / 0.55) 0%, rgb(13 30 52 / 0.4) 60%, rgb(5 12 20 / 0.3) 100%);
+    mix-blend-mode: normal;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .hero-dusk {
+      background:
+        radial-gradient(70% 55% at 62% 70%, rgb(27 58 92 / 0.6), transparent 70%),
+        linear-gradient(180deg, rgb(5 12 30 / 0.55) 0%, rgb(13 30 52 / 0.4) 60%, rgb(5 12 20 / 0.3) 100%);
+      mix-blend-mode: normal;
+    }
+  }
   .hero-inner {
     position: relative;
     z-index: 1;
@@ -729,7 +783,7 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    padding-top: clamp(108px, 16svh, 168px);
+    padding-top: clamp(96px, 16svh, 168px);
     padding-bottom: calc(var(--hero-h) * 0.32 + 24px);
   }
   @media (orientation: landscape) {
@@ -740,12 +794,72 @@
   .hero-text {
     max-width: 920px;
   }
-  /* the small reply line can sit over the tops of the 3D trees on wide screens: a paper halo keeps it legible */
-  .hero-text > .text-label {
-    text-shadow:
-      0 0 2px var(--color-paper),
-      0 0 6px var(--color-paper),
-      0 0 12px var(--color-paper);
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 32px;
+  }
+  /* the reply line: a solid pill, so it stays legible over the tree tops (no text-shadow halo) */
+  .hero-micro {
+    flex-basis: 100%;
+    margin-top: 12px;
+  }
+  .hero-micro > span {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-ink-soft);
+  }
+  /* the specimen label up the right gutter (decoration, desktop only) */
+  .hero-figure {
+    display: none;
+  }
+  @media (min-width: 1024px) {
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: 24px;
+      align-items: start;
+    }
+    .hero-text {
+      grid-column: 1 / span 7;
+      max-width: none;
+    }
+    /* the headline may run past the text column into the empty middle (never under the label) */
+    .hero-title {
+      width: calc(100% * 9 / 7);
+    }
+    .hero-micro {
+      flex-basis: auto;
+      margin: 0 0 0 12px;
+    }
+    .hero-figure {
+      display: block;
+      grid-column: 12;
+      justify-self: end;
+      margin: 8px 0 0;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      white-space: nowrap;
+      color: var(--color-ink-soft);
+    }
+  }
+  /* golden-hour caption (decoration): fades in late in the track */
+  .hero-golden {
+    position: absolute;
+    left: var(--gutter);
+    bottom: 24px;
+    z-index: 2;
+    margin: 0;
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-ink-soft);
+    opacity: 0;
+    pointer-events: none;
   }
   .hero-tag {
     display: inline-flex;
@@ -903,6 +1017,79 @@
     fill: var(--hp-wing);
   }
 
+  /* ───── Section titles: balanced, short measure, line reveal ───── */
+  .section-title {
+    max-width: 18ch;
+    text-wrap: balance;
+  }
+  .line-mask {
+    display: block;
+    /* clip only vertically: italic / tight-tracked glyphs may overhang the sides */
+    overflow-x: visible;
+    overflow-y: clip;
+    /* room for descenders inside the clip */
+    padding-bottom: 0.12em;
+    margin-bottom: -0.12em;
+  }
+  .line-mask > span {
+    display: block;
+  }
+
+  /* ───── Scroll stem + section dots ───── */
+  .scroll-stem {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 49;
+    height: 2px;
+    pointer-events: none;
+  }
+  .scroll-stem-fill {
+    height: 100%;
+    background: var(--color-leaf);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+  }
+  .section-dots {
+    display: none;
+  }
+  @media (min-width: 1024px) {
+    .section-dots {
+      display: block;
+      position: fixed;
+      /* the 44px hit area stays inside the page gutter (≥ 40px at 1024px) */
+      right: 0;
+      top: 50%;
+      z-index: 40;
+      translate: 0 -50%;
+    }
+  }
+  .section-dot {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-pill);
+    color: var(--color-line-strong);
+  }
+  .section-dot svg {
+    transition:
+      transform var(--dur-ui) var(--ease-bloom),
+      color var(--dur-ui) var(--ease-settle);
+  }
+  .section-dot:hover {
+    color: var(--color-ink-soft);
+  }
+  .section-dot[aria-current="true"] {
+    color: var(--color-leaf);
+  }
+  .section-dot[aria-current="true"] svg {
+    transform: scale(1.4);
+  }
+  :root[data-dialog-open] .scroll-stem,
+  :root[data-dialog-open] .section-dots {
+    visibility: hidden;
+  }
+
   /* ───── Proof strip ───── */
   .proof-grid > li {
     border-color: var(--color-line);
@@ -966,10 +1153,22 @@
     border: 1px solid var(--color-contact-line);
     color: var(--color-contact-text);
     text-decoration: none;
-    transition: background var(--dur-ui) var(--ease-settle);
+    transition:
+      background var(--dur-ui) var(--ease-settle),
+      border-color var(--dur-ui) var(--ease-settle),
+      translate var(--dur-ui) var(--ease-settle);
   }
   .channel:hover {
     background: rgb(244 247 241 / 0.11);
+    border-color: var(--color-contact-accent);
+  }
+  .channel-arrow {
+    display: inline-block;
+    transition: transform var(--dur-ui) var(--ease-settle);
+  }
+  .channel:hover .channel-arrow,
+  .channel:focus-visible .channel-arrow {
+    transform: translateX(4px);
   }
 
   /* ───── Dialog (project panel) — styles shared with the work gallery ───── */
@@ -1088,7 +1287,12 @@
   .gh {
     --gh-index-w: 260px;
     position: relative;
-    margin-top: 40px;
+    margin-top: 48px;
+  }
+  @media (min-width: 768px) {
+    .gh {
+      margin-top: 64px;
+    }
   }
   @media (min-width: 1280px) {
     .gh {
@@ -1539,6 +1743,24 @@
   opacity: 1;
   transform: none;
 }
+/* section h2 line reveal (never the hero H1); reduced motion shows it at rest */
+:root.js[data-motion="full"] .section-title .line-mask > span {
+  transform: translateY(105%);
+  transition: transform var(--dur-reveal) var(--ease-bloom);
+}
+:root.js[data-motion="full"] .section-title[data-revealed] .line-mask > span {
+  transform: none;
+}
+
+/* below-the-fold sections skip rendering until they are near (#work measures itself: excluded) */
+#services,
+#process,
+#about,
+#contact {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+
 /* swipe cards: the peeking next card must stay visible (the rail itself is the motion) */
 :root.js[data-gallery="cards"] .gh-card[data-reveal] {
   opacity: 1;
@@ -1578,7 +1800,11 @@
 
 @media print {
   .nav-wrap,
+  .scroll-stem,
+  .section-dots,
   .hero-art,
+  .hero-dusk,
+  .hero-golden,
   .rm-pill,
   .toast {
     display: none !important;

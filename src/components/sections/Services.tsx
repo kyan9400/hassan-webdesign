@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { services, waLink, type ServiceIcon } from "@/data/site";
 import { SpecimenLabel } from "@/components/ui/SpecimenLabel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import { NurseryTag } from "@/components/ui/NurseryTag";
 import { btnClass } from "@/components/ui/Button";
 import { IconBranching, IconCloche, IconLeafStem, IconSeedRoots } from "@/components/ui/icons";
@@ -18,10 +19,10 @@ export function Services() {
       <div className="container-site">
         <div className="max-w-[720px]">
           <SpecimenLabel>{services.eyebrow}</SpecimenLabel>
-          <h2 id="services-title" className="text-display-l mt-4">
+          <SectionTitle id="services-title" className="text-display-l mt-4">
             {services.title}
-          </h2>
-          <p className="text-lead mt-5 text-ink-soft">{services.lead}</p>
+          </SectionTitle>
+          <p className="text-lead mt-6 text-ink-soft">{services.lead}</p>
         </div>
 
         <ul className="mt-12 grid gap-4 md:mt-16 md:grid-cols-2 md:gap-6">
@@ -37,12 +38,12 @@ export function Services() {
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-paper-2 text-leaf">
                   <Icon size={26} />
                 </span>
-                <h3 className="text-display-m mt-5">{s.title}</h3>
+                <h3 className="text-display-m mt-6">{s.title}</h3>
                 <p className="mt-3 text-ink-soft">{s.body}</p>
                 <div className="mt-6">
                   <NurseryTag>{s.price}</NurseryTag>
                 </div>
-                <p className="mt-5 text-small text-ink-soft">
+                <p className="mt-6 text-small text-ink-soft">
                   {s.goodFor}
                   {s.extra ? (
                     <>

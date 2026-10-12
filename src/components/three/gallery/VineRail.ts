@@ -20,7 +20,7 @@ import {
   Vector3,
   type IUniform,
 } from "three";
-import type { Project } from "@/data/projects";
+import type { ProjectCard as Project } from "@/data/sectors";
 import { mulberry32 } from "@/lib/damp";
 import { HINGE, flowerGeometry } from "../hero/Blossoms";
 import { MAX_PANES, RAIL_OVERHANG, RAIL_R, RAIL_Y, THETA } from "./arrangement";
@@ -106,7 +106,7 @@ export class VineRail {
     // ── rail
     const railGeo = new TubeGeometry(new Arc(), RAIL_SEGMENTS, 0.018, RAIL_RADIAL, false);
     this.segmentIndexCount = RAIL_RADIAL * 6;
-    this.railMat = new MeshBasicMaterial({ color: DAY_RAIL.clone() });
+    this.railMat = new MeshBasicMaterial({ color: DAY_RAIL.clone(), toneMapped: false });
     this.rail = new Mesh(railGeo, this.railMat);
     this.rail.frustumCulled = false;
 

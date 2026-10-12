@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:pages": "node scripts/build-pages.mjs",
     "start": "next start",
     "lint": "eslint .",
     "capture": "node scripts/capture-screenshots.mjs"
@@ -15,7 +16,6 @@
   "dependencies": {
     "@react-three/drei": "10.7.9",
     "@react-three/fiber": "9.8.1",
-    "@react-three/postprocessing": "3.1.2",
     "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",

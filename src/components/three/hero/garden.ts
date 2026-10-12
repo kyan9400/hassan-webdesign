@@ -17,7 +17,7 @@ import { getMotion, subscribeMotion, type Motion } from "@/lib/motion";
 import { getTheme, subscribeTheme } from "@/lib/theme";
 import { exitProgress, subscribeScrollFrame } from "@/lib/scroll-progress";
 import { heroFraming, FOV, type HeroFraming } from "@/lib/skyline-fit";
-import { damp } from "@/lib/damp";
+import { damp, smoothstep } from "@/lib/damp";
 import { BirdBrain, type BirdInput, type Rect, type Vec2, type Vec3 } from "../bird/birdBrain";
 import { Hummingbird } from "../bird/Hummingbird";
 import { BIRD_START, PERCH, SIP_OFFSET } from "./layout";
@@ -26,13 +26,23 @@ import { Skyline } from "./Skyline";
 import { createCanopies } from "./Canopies";
 import { Blossoms } from "./Blossoms";
 import { createPollen, Sparks } from "./Pollen";
-import { createHill } from "./Hill";
+import { createHill, lawnColor } from "./Hill";
+import { createGrounding } from "./Grounding";
+import { TowerDetails } from "./TowerDetails";
+import { Glows } from "./Glows";
 import { createGardenEnvironment } from "./environment";
 
 /**
  * GardenController — the imperative core of "The living skyline". Plain TypeScript; the React
  * component (GardenScene) only creates it, hands it the renderer and calls `frame()` from useFrame.
  * Everything per frame works on preallocated objects and uniforms (no React state, no allocations).
+ *
+ * The scroll moment, "Golden hour" (full motion, ≥ 768px, live 3D, the tall track): over the
+ * damped scroll value pS the hero text fades and lifts, the sun arcs down behind tower 4 while the
+ * light turns amber, the windows switch on floor by floor in a ripple from tower 4, the camera
+ * dolly-zooms (moves in 30 % while the FOV widens 30° → 42°, skyline width fixed) and the bird
+ * leaves for the work section. At night the same track is "Midnight": the windows go out.
+ * Intro ("lights on"): the sun ramps up from 0.35 while a light sweep crosses the facades.
  */
 
 export type GardenAttach = {
@@ -50,8 +60,18 @@ export type GardenAttach = {
 };
 
 const DEFAULT_SUN = new Vector3(2.5, 9, 7);
+/** golden hour: the sun ends just behind tower 4, arcing through a high control point */
+const DUSK_SUN = new Vector3(-0.6, 2.4, -6);
+const DUSK_CTRL = new Vector3(3.2, 8.2, -1.5);
 const LOOK_SUN_PLANE_Z = 1.5;
 const DEG = Math.PI / 180;
+const FOV_DUSK = 42;
+const HALF_TAN_FOV = Math.tan((FOV / 2) * DEG);
+const AMBER_HEMI = new Color("#F6C9A0");
+const AMBER_SUN = new Color("#FFB36B");
+const SWEEP_FROM = -3.6;
+const SWEEP_TO = 4.4;
+const SWEEP_OFF = -10;
 
 export class GardenController {
   /** add with <primitive object={garden.root} /> */
@@ -62,6 +82,9 @@ export class GardenController {
   // shared uniforms
   private readonly uTime = { value: 0 };
   private readonly uNight = { value: 0 };
+  private readonly uDusk = { value: 0 };
+  private readonly uSweep = { value: SWEEP_OFF };
+  private readonly uRise = { value: 0 };
   private readonly uWind = { value: 1 };
   private readonly uSunDir = { value: new Vector3(0.3, 0.8, 0.5).normalize() };
   private readonly uSun = { value: DEFAULT_SUN.clone() };
@@ -77,6 +100,9 @@ export class GardenController {
   private readonly sparks: Sparks;
   private readonly hill;
   private readonly canopies: InstancedMesh;
+  private readonly grounding;
+  private readonly details: TowerDetails;
+  private readonly glows: Glows;
   private bird: Hummingbird | null = null;
   private brain: BirdBrain | null = null;
   private env: Texture | null = null;
@@ -89,6 +115,8 @@ export class GardenController {
   private warm = false;
   private readySent = false;
   private t0 = 0;
+  private dusk: HTMLElement | null = null;
+  private caption: HTMLElement | null = null;
 
   // layout
   private W = 1;
@@ -106,8 +134,18 @@ export class GardenController {
   private nightFrom = 0;
   private nightProgress = 1;
   private introStart = -1;
+  private sweepStart = -1;
+  private lightsOn = 1;
   private pTarget = 0;
   private pS = 0;
+  /** the golden-hour track is active (tall hero, full motion, ≥ 768px) */
+  private golden = false;
+  private focusInHero = false;
+  private textFade = -1;
+  private overlay = -1;
+  private captionOn = -1;
+  private duskLight = 0;
+  private fov = FOV;
   private exited = false;
   private yawP = 0;
   private pitchP = 0;
@@ -139,21 +177,37 @@ export class GardenController {
     this.quality = quality;
     const tier = quality.tier;
 
-    this.hemi = new HemisphereLight(DAY.hemiSky.clone(), DAY.hemiGround.clone(), 0.75 * Math.PI);
-    this.sunLight = new DirectionalLight(DAY.sunLight.clone(), 0.5 * Math.PI);
+    // tuned for ACES: the tone-mapped parts land on the drawing's colours on their lit side
+    this.hemi = new HemisphereLight(DAY.hemiSky.clone(), DAY.hemiGround.clone(), 0.9 * Math.PI);
+    this.sunLight = new DirectionalLight(DAY.sunLight.clone(), 0.65 * Math.PI);
     this.sunLight.position.copy(DEFAULT_SUN);
     this.root.add(this.hemi, this.sunLight, this.sunLight.target);
 
-    const glassShared = { uNight: this.uNight, uSunDir: this.uSunDir };
+    const glassShared = { uNight: this.uNight, uSunDir: this.uSunDir, uDusk: this.uDusk, uSweep: this.uSweep };
     this.skyline = new Skyline(tier, glassShared);
     const canopies = createCanopies(tier, { uTime: this.uTime, uNight: this.uNight, uWind: this.uWind });
     this.canopies = canopies;
     this.blossoms = new Blossoms(tier, { uTime: this.uTime, uNight: this.uNight, uSun: this.uSun, uLightDir: this.uLightDir });
-    this.pollen = createPollen(tier, { uTime: this.uTime, uNight: this.uNight }, this.uScale);
+    this.pollen = createPollen(tier, { uTime: this.uTime, uNight: this.uNight, uRise: this.uRise }, this.uScale);
     this.sparks = new Sparks({ uTime: this.uTime, uNight: this.uNight }, this.uScale);
-    this.hill = createHill();
+    this.hill = createHill(tier);
+    this.grounding = createGrounding();
+    this.details = new TowerDetails(tier, { uTime: this.uTime, uNight: this.uNight, uScale: this.uScale });
+    this.glows = new Glows(tier, { uNight: this.uNight, uDusk: this.uDusk, uScale: this.uScale }, this.blossoms.anchors);
 
-    this.content.add(this.hill.mesh, this.skyline.back, this.skyline.front, canopies, this.blossoms.mesh, this.pollen, this.sparks.points);
+    this.content.add(
+      this.hill.mesh,
+      this.grounding,
+      this.skyline.back,
+      this.skyline.front,
+      this.details.mesh,
+      canopies,
+      this.blossoms.mesh,
+      this.glows.points,
+      this.details.beacon,
+      this.pollen,
+      this.sparks.points,
+    );
     if (this.skyline.softProbe) this.content.add(this.skyline.softProbe);
     this.content.visible = false; // shaders compile (compileAsync) before anything is drawn
     this.root.add(this.content);
@@ -186,14 +240,19 @@ export class GardenController {
     this.t0 = performance.now();
     const { renderer, scene, camera } = a;
 
+    this.fov = FOV;
     camera.fov = FOV;
     camera.near = 0.1;
     camera.far = 140;
     camera.updateProjectionMatrix();
 
-    // code-made environment: scene lighting and the gorget's reflections
-    // (built on the high tier only: PMREM is a long main-thread task on weaker GPUs)
-    this.env = this.quality.tier === "high" ? createGardenEnvironment(renderer) : null;
+    // code-made environment for the metal details, the glass and the gorget, built BEFORE
+    // compileAsync so every program compiles once with it (128px on high, 64px on medium)
+    try {
+      this.env = createGardenEnvironment(renderer, this.quality.tier === "high" ? 128 : 64);
+    } catch {
+      this.env = null;
+    }
     if (this.env) scene.environment = this.env;
 
     this.bird = new Hummingbird(this.env);
@@ -218,12 +277,15 @@ export class GardenController {
     this.governor = new LoopGovernor(a.invalidate, a.hero);
     this.dpr = Math.min(window.devicePixelRatio || 1, this.quality.dprCap);
     this.governor.onDecline = () => this.onDecline();
+    this.dusk = a.hero.querySelector<HTMLElement>("[data-hero-dusk]");
+    this.caption = a.hero.querySelector<HTMLElement>("[data-hero-caption]");
 
     // motion & theme
     this.motion = getMotion();
     this.nightTarget = getTheme() === "dark" ? 1 : 0;
     this.uNight.value = this.nightTarget;
     this.nightProgress = 1;
+    this.lightsOn = this.motion === "full" ? 0.35 : 1;
     this.applyNight(this.nightTarget);
     this.applyMotion(true);
 
@@ -242,6 +304,7 @@ export class GardenController {
         this.nightTarget = target;
         this.nightProgress = this.motion === "full" ? 0 : 1;
         if (this.motion !== "full") this.applyNight(target);
+        else this.startSweep();
         this.kick();
       }),
       subscribeScrollFrame(() => this.onScroll()),
@@ -270,10 +333,21 @@ export class GardenController {
         this.kick();
       }
     };
+    // focus inside the hero cancels the text fade (keyboard users always see what is focused)
+    const onFocusIn = () => {
+      this.focusInHero = true;
+      this.governor?.poke();
+    };
+    const onFocusOut = (e: FocusEvent) => {
+      this.focusInHero = hero.contains(e.relatedTarget as Node | null);
+      this.governor?.poke();
+    };
     hero.addEventListener("pointermove", onMove, { passive: true });
     hero.addEventListener("pointerleave", onLeave, { passive: true });
     hero.addEventListener("pointerdown", onDown, { passive: true });
     hero.addEventListener("pointerup", onUp, { passive: true });
+    hero.addEventListener("focusin", onFocusIn);
+    hero.addEventListener("focusout", onFocusOut);
     const canvas = renderer.domElement;
     const onLost = () => a.onLost();
     canvas.addEventListener("webglcontextlost", onLost);
@@ -282,6 +356,8 @@ export class GardenController {
       hero.removeEventListener("pointerleave", onLeave);
       hero.removeEventListener("pointerdown", onDown);
       hero.removeEventListener("pointerup", onUp);
+      hero.removeEventListener("focusin", onFocusIn);
+      hero.removeEventListener("focusout", onFocusOut);
       canvas.removeEventListener("webglcontextlost", onLost);
     });
 
@@ -294,9 +370,13 @@ export class GardenController {
     // call and hidden again until the programs are ready (no frame can draw it half-compiled).
     this.content.visible = true;
     this.sparks.points.visible = true;
+    this.glows.points.visible = true;
+    this.details.beacon.visible = true;
     if (this.skyline.softProbe) this.skyline.softProbe.visible = true; // the fallback glass, cached before any swap
     const compiling = renderer.compileAsync(scene, camera);
     this.sparks.points.visible = false;
+    this.glows.update(this.uNight.value, this.uDusk.value);
+    this.details.setNight(this.uNight.value);
     if (this.skyline.softProbe) this.skyline.softProbe.visible = false;
     this.content.visible = false;
     compiling
@@ -305,7 +385,11 @@ export class GardenController {
         if (this.disposed) return;
         this.warm = true;
         this.content.visible = true;
-        if (this.motion === "full") this.introStart = this.now();
+        // "lights on": the blossoms open, the sun comes up and a light sweep crosses the glass
+        if (this.motion === "full") {
+          this.introStart = this.now();
+          this.startSweep();
+        }
         this.kick();
         a.invalidate();
       });
@@ -319,6 +403,7 @@ export class GardenController {
     this.cleanups = [];
     this.governor?.dispose();
     this.governor = null;
+    this.clearDom();
     if (this.a && this.a.scene.environment === this.env) this.a.scene.environment = null;
     if (this.bird) {
       this.content.remove(this.bird.group);
@@ -334,10 +419,16 @@ export class GardenController {
     this.skyline.dispose();
     this.blossoms.dispose();
     this.sparks.dispose();
+    this.details.dispose();
+    this.glows.dispose();
     this.pollen.geometry.dispose();
     (this.pollen.material as { dispose(): void }).dispose();
     this.hill.mesh.geometry.dispose();
     (this.hill.mesh.material as { dispose(): void }).dispose();
+    this.grounding.geometry.dispose();
+    const gm = this.grounding.material as { map?: { dispose(): void } | null; dispose(): void };
+    gm.map?.dispose();
+    gm.dispose();
     this.canopies.geometry.dispose();
     (this.canopies.material as { dispose(): void }).dispose();
   }
@@ -357,7 +448,7 @@ export class GardenController {
   /** gl_PointSize scale: drawing-buffer height / (2·tan(fov/2)). */
   private updatePointScale() {
     const h = this.a ? this.a.renderer.getDrawingBufferSize(this.bufSize).y : this.H;
-    this.uScale.value = h / (2 * Math.tan((FOV / 2) * DEG));
+    this.uScale.value = h / (2 * Math.tan((this.fov / 2) * DEG));
   }
 
   /** Cache DOM rects: canvas offset (pointer mapping), the text no-fly zone, blossom screen positions. */
@@ -410,13 +501,35 @@ export class GardenController {
     if (!a) return;
     const f = this.framing;
     const cam = a.camera;
-    const lean = this.motion === "full" ? this.pS : 0;
-    this.look.set(0, f.y - 0.4 * lean, -1.5 * lean);
+    const full = this.motion === "full";
+    let d = f.d;
+    if (full && this.golden) {
+      // dolly zoom: widen the FOV and move in so the skyline's width at z = 0 stays fixed
+      const z = smoothstep(0, 1, this.pS);
+      const fov = FOV + (FOV_DUSK - FOV) * z;
+      if (Math.abs(fov - this.fov) > 0.01) {
+        this.fov = fov;
+        cam.fov = fov;
+        cam.updateProjectionMatrix();
+        this.updatePointScale();
+      }
+      d = (f.d * HALF_TAN_FOV) / Math.tan((this.fov / 2) * DEG);
+      this.look.set(0, f.y, 0);
+    } else {
+      if (this.fov !== FOV) {
+        this.fov = FOV;
+        cam.fov = FOV;
+        cam.updateProjectionMatrix();
+        this.updatePointScale();
+      }
+      const lean = full ? this.pS : 0;
+      this.look.set(0, f.y - 0.4 * lean, -1.5 * lean);
+    }
     const cp = Math.cos(this.pitchP);
     cam.position.set(
-      this.look.x + f.d * Math.sin(this.yawP) * cp,
-      this.look.y + f.d * Math.sin(this.pitchP),
-      this.look.z + f.d * Math.cos(this.yawP) * cp,
+      this.look.x + d * Math.sin(this.yawP) * cp,
+      this.look.y + d * Math.sin(this.pitchP),
+      this.look.z + d * Math.cos(this.yawP) * cp,
     );
     cam.lookAt(this.look);
     cam.updateMatrixWorld();
@@ -434,6 +547,11 @@ export class GardenController {
     else this.governor.poke();
   }
 
+  private startSweep() {
+    if (this.motion !== "full") return;
+    this.sweepStart = this.now();
+  }
+
   private onPointerMove(e: PointerEvent) {
     if (e.pointerType !== "mouse" && e.pointerType !== "pen") return;
     this.cursorX = e.clientX - this.canvasLeft;
@@ -445,10 +563,33 @@ export class GardenController {
     this.governor?.setRate(60);
   }
 
+  /** The tall golden-hour track: live 3D, full motion, ≥ 768px, and the hero switched to it. */
+  private trackActive(hero: HTMLElement): boolean {
+    return (
+      this.motion === "full" &&
+      hero.getAttribute("data-track") === "tall" &&
+      hero.getAttribute("data-hero") === "live" &&
+      window.innerWidth >= 768
+    );
+  }
+
   private onScroll() {
     const a = this.a;
     if (!a) return;
-    const p = exitProgress(a.hero);
+    const hero = a.hero;
+    const golden = this.trackActive(hero);
+    let p: number;
+    if (golden) {
+      const r = hero.getBoundingClientRect();
+      const range = r.height - window.innerHeight;
+      p = range > 1 ? Math.min(1, Math.max(0, -r.top / range)) : 0;
+    } else {
+      p = exitProgress(hero);
+    }
+    if (golden !== this.golden) {
+      this.golden = golden;
+      if (!golden) this.clearDom();
+    }
     const prevTarget = this.pTarget;
     this.pTarget = p;
     this.measure();
@@ -462,8 +603,8 @@ export class GardenController {
   private onDecline() {
     if (!this.a) return;
     this.declines++;
-    // high tier: trim DPR to 1.5, then drop the costliest passes (transmission glass +
-    // bloom) before going lower; medium has no such passes, so it goes straight to DPR 1
+    // high tier: trim DPR to 1.5, then drop the costliest pass (transmission glass) before going
+    // lower; medium has no such pass, so it goes straight to DPR 1
     const high = this.quality.tier === "high";
     if (high && this.dpr > 1.5) {
       this.dpr = Math.max(1.5, this.dpr - 0.5);
@@ -478,21 +619,32 @@ export class GardenController {
     }
   }
 
-  // ───────────────────────── theme & motion ─────────────────────────
+  // ───────────────────────── theme, light & motion ─────────────────────────
 
   private applyNight(n: number) {
     this.uNight.value = n;
-    this.hemi.color.copy(DAY.hemiSky).lerp(NIGHT.hemiSky, n);
-    this.hemi.groundColor.copy(DAY.hemiGround).lerp(NIGHT.hemiGround, n);
-    this.hemi.intensity = (0.75 - 0.35 * n) * Math.PI;
-    this.sunLight.color.copy(DAY.sunLight).lerp(NIGHT.sunLight, n);
-    this.sunLight.intensity = (0.5 - 0.3 * n) * Math.PI;
     this.hill.color.copy(DAY.hill).lerp(NIGHT.hill, n);
+    lawnColor(this.hill.lawn, n);
     this.skyline.setNight(n);
     this.cTmp.copy(DAY.bloom).lerp(NIGHT.bloom, n);
     this.cTmp2.copy(DAY.sun).lerp(NIGHT.sun, n);
     this.blossoms.setColors(this.cTmp, this.cTmp2);
     this.bird?.setNight(n);
+    this.details.setNight(n);
+    this.applyLights();
+  }
+
+  /** Hemisphere + sun from the night amount, the golden-hour light and the intro "lights on". */
+  private applyLights() {
+    const n = this.uNight.value;
+    const amber = this.duskLight * (1 - n);
+    const quiet = this.duskLight * n;
+    this.hemi.color.copy(DAY.hemiSky).lerp(NIGHT.hemiSky, n).lerp(AMBER_HEMI, amber * 0.7);
+    this.hemi.groundColor.copy(DAY.hemiGround).lerp(NIGHT.hemiGround, n);
+    this.hemi.intensity = (0.9 - 0.42 * n) * Math.PI * (1 - 0.18 * quiet);
+    this.sunLight.color.copy(DAY.sunLight).lerp(NIGHT.sunLight, n).lerp(AMBER_SUN, amber);
+    this.sunLight.intensity = (0.65 - 0.39 * n) * Math.PI * this.lightsOn * (1 - 0.3 * quiet);
+    this.glows.update(n, this.uDusk.value);
   }
 
   private applyMotion(initial: boolean) {
@@ -503,11 +655,18 @@ export class GardenController {
     if (!full) {
       this.blossoms.uOpen.value = 1.6;
       this.introStart = -1;
+      this.sweepStart = -1;
+      this.uSweep.value = SWEEP_OFF;
+      this.lightsOn = 1;
       this.brain?.snapToPerch(t);
       this.yawP = this.pitchP = 0;
       this.pS = 0;
+      this.setDusk(0, 0);
+      this.golden = false;
+      this.clearDom();
       this.governor?.setRate(0);
       this.updateCamera();
+      this.applyLights();
       this.governor?.poke();
     } else {
       if (initial) {
@@ -517,8 +676,56 @@ export class GardenController {
         this.lastInput = t;
         this.brain?.wake(t);
       }
+      if (this.a) this.onScroll();
       if (this.warm) this.governor?.setRate(60);
     }
+  }
+
+  /** Golden-hour amounts: uDusk drives the shaders (windows ripple), duskLight the lights. */
+  private setDusk(dusk: number, light: number) {
+    if (Math.abs(dusk - this.uDusk.value) < 1e-4 && Math.abs(light - this.duskLight) < 1e-4) return;
+    this.uDusk.value = dusk;
+    this.duskLight = light;
+    this.uRise.value = light;
+    this.applyLights();
+  }
+
+  /** Text fade, the amber overlay and the caption — style writes only when a value changes. */
+  private writeDom(textFade: number, overlay: number, caption: number) {
+    const text = this.a?.text;
+    if (text && Math.abs(textFade - this.textFade) > 0.002) {
+      this.textFade = textFade;
+      if (textFade <= 0.002) {
+        text.style.opacity = "";
+        text.style.transform = "";
+        text.style.pointerEvents = "";
+      } else {
+        text.style.opacity = (1 - textFade).toFixed(3);
+        text.style.transform = `translate3d(0, ${(-40 * textFade).toFixed(1)}px, 0)`;
+        // nearly invisible links must not catch clicks (keyboard focus still cancels the fade)
+        text.style.pointerEvents = textFade > 0.85 ? "none" : "";
+      }
+    }
+    if (this.dusk && Math.abs(overlay - this.overlay) > 0.002) {
+      this.overlay = overlay;
+      this.dusk.style.opacity = overlay.toFixed(3);
+    }
+    if (this.caption && Math.abs(caption - this.captionOn) > 0.002) {
+      this.captionOn = caption;
+      this.caption.style.opacity = caption.toFixed(3);
+    }
+  }
+
+  private clearDom() {
+    const text = this.a?.text;
+    if (text) {
+      text.style.opacity = "";
+      text.style.transform = "";
+      text.style.pointerEvents = "";
+    }
+    if (this.dusk) this.dusk.style.opacity = "";
+    if (this.caption) this.caption.style.opacity = "";
+    this.textFade = this.overlay = this.captionOn = -1;
   }
 
   // ───────────────────────── per frame ─────────────────────────
@@ -533,12 +740,27 @@ export class GardenController {
     const full = this.motion === "full";
     let busy = false;
 
-    // intro: blossoms open in a ripple from tower 4 (uOpen 0 → 1.6 over 1.4 s)
+    // intro: blossoms open in a ripple from tower 4 (uOpen 0 → 1.6 over 1.4 s) while the sun
+    // comes up from 0.35 ("lights on")
     if (this.introStart >= 0 && this.warm) {
       const u = Math.min(1, (t - this.introStart) / 1.4);
       this.blossoms.uOpen.value = 1.6 * u;
+      this.lightsOn = 0.35 + 0.65 * smoothstep(0, 1, u);
+      this.applyLights();
       if (u >= 1) this.introStart = -1;
       else busy = true;
+    }
+
+    // light sweep across the facades (1.2 s), on reveal and on every theme switch
+    if (this.sweepStart >= 0) {
+      const u = (t - this.sweepStart) / 1.2;
+      if (u >= 1) {
+        this.sweepStart = -1;
+        this.uSweep.value = SWEEP_OFF;
+      } else {
+        this.uSweep.value = SWEEP_FROM + (SWEEP_TO - SWEEP_FROM) * u;
+        busy = true;
+      }
     }
 
     // theme: uNight animates over 900 ms
@@ -549,8 +771,46 @@ export class GardenController {
       busy = true;
     }
 
-    // cursor-sun: the cursor projected onto z = 1.5, damped (λ = 6)
-    if (full && this.cursorActive && !this.quality.touch) {
+    // scroll (damped once, here) and cursor parallax (±2° yaw, ±1° pitch)
+    if (full) {
+      if (Math.abs(this.pS - this.pTarget) > 1e-4) {
+        this.pS = damp(this.pS, this.pTarget, 10, dt);
+        busy = true;
+      } else this.pS = this.pTarget;
+      const nx = this.cursorActive ? (this.cursorX / this.W - 0.5) * 2 : 0;
+      const ny = this.cursorActive ? (this.cursorY / this.H - 0.5) * 2 : 0;
+      const yT = 2 * DEG * Math.max(-1, Math.min(1, nx));
+      const pT = -1 * DEG * Math.max(-1, Math.min(1, ny));
+      if (Math.abs(this.yawP - yT) + Math.abs(this.pitchP - pT) > 1e-5) {
+        this.yawP = damp(this.yawP, yT, 4, dt);
+        this.pitchP = damp(this.pitchP, pT, 4, dt);
+        busy = true;
+      }
+    }
+
+    // golden hour / midnight
+    const golden = full && this.golden;
+    const pS = golden ? this.pS : 0;
+    if (golden) {
+      const light = smoothstep(0.1, 0.8, pS);
+      this.setDusk(Math.min(1, Math.max(0, (pS - 0.25) / 0.65)) * 1.12, light);
+      const fade = this.focusInHero ? 0 : smoothstep(0, 0.35, pS);
+      this.writeDom(fade, 0.85 * light, smoothstep(0.55, 0.85, pS));
+    } else if (this.uDusk.value !== 0 || this.duskLight !== 0) {
+      this.setDusk(0, 0);
+    }
+
+    // the sun: the scroll owns it past 5 % of the track; otherwise the cursor (z = 1.5, λ = 6)
+    if (golden && pS > 0.05) {
+      const u = smoothstep(0.1, 0.8, pS);
+      const iu = 1 - u;
+      // quadratic Bézier: default → control → behind tower 4
+      this.sunTarget
+        .copy(DEFAULT_SUN)
+        .multiplyScalar(iu * iu)
+        .addScaledVector(DUSK_CTRL, 2 * iu * u)
+        .addScaledVector(DUSK_SUN, u * u);
+    } else if (full && this.cursorActive && !this.quality.touch) {
       this.unproject(this.cursorX, this.cursorY, LOOK_SUN_PLANE_Z, this.sunTarget);
       this.sunTarget.y += 0.6;
     } else {
@@ -568,25 +828,9 @@ export class GardenController {
     this.uLightDir.value.copy(this.v2);
     this.sunLight.position.copy(this.v2).multiplyScalar(12);
 
-    // scroll exit (damped once, here) and cursor parallax (±2° yaw, ±1° pitch)
-    if (full) {
-      if (Math.abs(this.pS - this.pTarget) > 1e-4) {
-        this.pS = damp(this.pS, this.pTarget, 10, dt);
-        busy = true;
-      } else this.pS = this.pTarget;
-      const nx = this.cursorActive ? (this.cursorX / this.W - 0.5) * 2 : 0;
-      const ny = this.cursorActive ? (this.cursorY / this.H - 0.5) * 2 : 0;
-      const yT = 2 * DEG * Math.max(-1, Math.min(1, nx));
-      const pT = -1 * DEG * Math.max(-1, Math.min(1, ny));
-      if (Math.abs(this.yawP - yT) + Math.abs(this.pitchP - pT) > 1e-5) {
-        this.yawP = damp(this.yawP, yT, 4, dt);
-        this.pitchP = damp(this.pitchP, pT, 4, dt);
-        busy = true;
-      }
-    }
     this.updateCamera();
 
-    // the bird
+    // the bird: on the golden-hour track it leaves for #work at 85 %; otherwise at 15 % exit
     const inp = this.input;
     inp.time = t;
     inp.lastInput = this.lastInput;
@@ -597,13 +841,13 @@ export class GardenController {
     inp.tapX = this.tapX;
     inp.tapY = this.tapY;
     this.tap = false;
-    const exitNow = this.pTarget > 0.15;
+    const exitNow = golden ? this.pTarget > 0.85 : this.pTarget > 0.15;
     if (exitNow) this.exited = true;
     inp.exit = exitNow;
     inp.home = this.exited && this.pTarget < 0.05;
     if (inp.home) this.exited = false;
     inp.reduced = !full;
-    inp.noFly = this.hasNoFly ? this.noFly : null;
+    inp.noFly = this.hasNoFly && this.textFade < 0.5 ? this.noFly : null;
     inp.viewW = this.W;
     inp.viewH = this.H;
     brain.update(dt, inp);

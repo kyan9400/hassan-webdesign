@@ -78,7 +78,7 @@ export function ProjectCase({ project: p, flags, variant, titleId, showShots = t
         </a>
       </div>
 
-      <section className="mt-10 border-t border-line pt-6" aria-labelledby={`${p.slug}-sig`}>
+      <section className="mt-12 border-t border-line pt-6" aria-labelledby={`${p.slug}-sig`}>
         <Sub id={`${p.slug}-sig`} className="text-label text-ink-soft">
           {projectCase.signature}
         </Sub>

@@ -15,7 +15,7 @@ import {
   type Texture,
   type WebGLRenderer,
 } from "three";
-import type { Project, Sector } from "@/data/projects";
+import type { ProjectCard as Project, Sector } from "@/data/sectors";
 import { work } from "@/data/site";
 import type { Quality } from "@/lib/quality";
 import { LoopGovernor } from "@/lib/loop-governor";
@@ -109,6 +109,8 @@ export class GlasshouseController {
   private readonly uNight = { value: 0 };
   private readonly uBg = { value: DAY_BG.clone() };
   private readonly uScale = { value: 800 };
+  /** the walk position (s), for the panes' travelling reflection streak */
+  private readonly uWalk = { value: 0 };
 
   // parts
   private readonly geo: PaneGeometries;
@@ -209,13 +211,14 @@ export class GlasshouseController {
     this.flags = flags;
     this.desktopWidth = quality.tier === "high" ? 1080 : 828;
 
-    this.hemi = new HemisphereLight(DAY_HEMI_SKY.clone(), DAY_HEMI_GROUND.clone(), 0.75 * Math.PI);
-    this.sun = new DirectionalLight(new Color("#FFF4E0"), 0.5 * Math.PI);
+    // tuned for ACES tone mapping (as the hero)
+    this.hemi = new HemisphereLight(DAY_HEMI_SKY.clone(), DAY_HEMI_GROUND.clone(), 0.9 * Math.PI);
+    this.sun = new DirectionalLight(new Color("#FFF4E0"), 0.65 * Math.PI);
     this.sun.position.set(2, 6, 4);
     this.root.add(this.hemi, this.sun);
 
     this.geo = createPaneGeometries();
-    const shared = { uBg: this.uBg, uNight: this.uNight };
+    const shared = { uBg: this.uBg, uNight: this.uNight, uWalk: this.uWalk };
     this.panes = projects.map((p, i) => {
       const f = flags[i];
       const place = createPlaceholder(p, "desktop", f.hasDesktop ? work.screenshotLoading : work.screenshotSoon);
@@ -281,8 +284,13 @@ export class GlasshouseController {
     camera.far = 60;
     this.anisotropy = Math.min(this.quality.tier === "high" ? 8 : 4, renderer.capabilities.getMaxAnisotropy());
 
-    // the gorget's iridescent reflections use the same code-made environment as the hero
-    this.env = this.quality.tier === "high" ? createGardenEnvironment(renderer) : null;
+    // the same code-made environment as the hero (64px on medium): metal mullions and the gorget
+    try {
+      this.env = createGardenEnvironment(renderer, this.quality.tier === "high" ? 128 : 64);
+    } catch {
+      this.env = null;
+    }
+    if (this.env) scene.environment = this.env;
     this.bird = new Hummingbird(this.env);
     this.bird.group.scale.setScalar(BIRD_GALLERY_SCALE);
     this.content.add(this.bird.group);
@@ -439,6 +447,7 @@ export class GlasshouseController {
     }
     this.bird = null;
     this.brain = null;
+    if (this.a && this.a.scene.environment === this.env) this.a.scene.environment = null;
     this.env?.dispose();
     this.env = null;
     this.a = null;
@@ -678,8 +687,8 @@ export class GlasshouseController {
     this.uBg.value.copy(DAY_BG).lerp(NIGHT_BG, n);
     this.hemi.color.copy(DAY_HEMI_SKY).lerp(NIGHT_HEMI_SKY, n);
     this.hemi.groundColor.copy(DAY_HEMI_GROUND).lerp(NIGHT_HEMI_GROUND, n);
-    this.hemi.intensity = (0.75 - 0.35 * n) * Math.PI;
-    this.sun.intensity = (0.5 - 0.3 * n) * Math.PI;
+    this.hemi.intensity = (0.9 - 0.42 * n) * Math.PI;
+    this.sun.intensity = (0.65 - 0.39 * n) * Math.PI;
     this.frames.setNight(n);
     this.vine.setNight(n);
     this.bird?.setNight(n);
@@ -872,6 +881,7 @@ export class GlasshouseController {
         busy = true;
       } else this.s = sGoal;
     } else this.s = sGoal;
+    this.uWalk.value = this.s;
 
     // filter re-flow (600 ms) and scale in / out (400 ms)
     let reflow = false;

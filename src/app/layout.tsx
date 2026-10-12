@@ -10,6 +10,7 @@ import { Footer } from "@/components/chrome/Footer";
 import { Toaster } from "@/components/ui/Toast";
 import { LiveRegion } from "@/components/ui/LiveRegion";
 import { RevealObserver } from "@/components/ui/RevealObserver";
+import { ScrollChrome } from "@/components/chrome/ScrollChrome";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -76,7 +77,7 @@ export const viewport: Viewport = {
   colorScheme: "light dark",
 };
 
-export default function RootLayout({ children, modal }: { children: ReactNode; modal: ReactNode }) {
+export default function RootLayout({ children, modal }: { children: ReactNode; modal?: ReactNode }) {
   return (
     <html
       lang="en"
@@ -98,6 +99,7 @@ export default function RootLayout({ children, modal }: { children: ReactNode; m
         <Toaster />
         <LiveRegion />
         <RevealObserver />
+        <ScrollChrome />
       </body>
     </html>
   );

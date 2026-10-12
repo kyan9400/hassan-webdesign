@@ -1,8 +1,8 @@
 "use client";
 
 import { useId } from "react";
-import type { Project, Sector } from "@/data/projects";
-import { SECTORS } from "@/data/projects";
+import type { ProjectCard as Project, Sector } from "@/data/sectors";
+import { SECTORS } from "@/data/sectors";
 import { work } from "@/data/site";
 
 type Props = {

@@ -1,5 +1,6 @@
 import { about, herbarium } from "@/data/site";
 import { SpecimenLabel } from "@/components/ui/SpecimenLabel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 
 /** A pressed flower, drawn in code, for the top of the herbarium card. */
 function PressedFlower() {
@@ -26,15 +27,15 @@ export function About() {
       <div className="container-site grid gap-12 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-7">
           <SpecimenLabel>{about.eyebrow}</SpecimenLabel>
-          <h2 id="about-title" className="text-display-l mt-4">
+          <SectionTitle id="about-title" className="text-display-l mt-4">
             {about.title}
-          </h2>
+          </SectionTitle>
           <div className="mt-6 flex max-w-[62ch] flex-col gap-4 text-ink-soft">
             {about.paragraphs.map((p) => (
               <p key={p.slice(0, 24)}>{p}</p>
             ))}
           </div>
-          <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-1">
+          <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
             {about.links.map((l) => (
               <li key={l.href}>
                 <a

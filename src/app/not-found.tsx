@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RouteLink as Link } from "@/components/ui/RouteLink";
 import { notFound as copy } from "@/data/site";
 import { btnClass } from "@/components/ui/Button";
 

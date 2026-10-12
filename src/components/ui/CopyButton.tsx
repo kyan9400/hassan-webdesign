@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { IconCheck, IconCopy } from "./icons";
-import { toast } from "./Toast";
+import { toast } from "@/lib/toast";
 
 type Props = {
   /** text to copy; when omitted, the current page URL is copied */

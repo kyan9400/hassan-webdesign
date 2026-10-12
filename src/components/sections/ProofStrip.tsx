@@ -11,7 +11,7 @@ export function ProofStrip() {
             data-reveal
             style={{ "--reveal-i": i } as CSSProperties}
             className={[
-              "flex flex-col gap-3 py-8 md:py-10",
+              "flex flex-col gap-3 py-8 md:py-12",
               "px-4 first:pl-0 md:px-8",
               i % 2 === 1 ? "border-l" : "",
               i >= 2 ? "border-t md:border-t-0" : "",

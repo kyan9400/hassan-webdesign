@@ -68,6 +68,8 @@ export function ProjectDialog({ children }: { children: ReactNode }) {
     // phones have no top Close: start at the title, not the first link halfway down
     if (window.matchMedia("(max-width: 767px)").matches) focusTitle();
     document.documentElement.classList.add("is-locked");
+    // the scroll stem and section dots hide while the panel is open
+    document.documentElement.setAttribute("data-dialog-open", "");
 
     const onCancel = (e: Event) => {
       e.preventDefault();
@@ -86,6 +88,7 @@ export function ProjectDialog({ children }: { children: ReactNode }) {
       d.removeEventListener("cancel", onCancel);
       d.removeEventListener("close", onClose);
       document.documentElement.classList.remove("is-locked");
+      document.documentElement.removeAttribute("data-dialog-open");
       if (opener && opener.isConnected) opener.focus({ preventScroll: true });
       lastActivated = null; // an old click is never reused for a later opening
     };

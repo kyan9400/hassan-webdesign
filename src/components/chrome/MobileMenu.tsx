@@ -1,84 +1,40 @@
 "use client";
 
-import Link from "next/link";
-import { useRef } from "react";
-import { nav, navLinks, owner } from "@/data/site";
-import { IconClose, IconMenu } from "@/components/ui/icons";
-import { btnClass } from "@/components/ui/Button";
-import { MotionToggle } from "./MotionToggle";
-import { ThemeToggle } from "./ThemeToggle";
-import { Toaster } from "@/components/ui/Toast";
+import { Suspense, lazy, useCallback, useState } from "react";
+import { nav } from "@/data/site";
+import { IconMenu } from "@/components/ui/icons";
 
-/** Mobile (< 768px) full-screen menu: a solid-surface native <dialog>. */
+// the sheet (links, toggles, toast outlet) loads on the first tap, not with the page
+// (React.lazy: rendered only after a click, so it never runs on the server)
+const MobileSheet = lazy(() => import("./MobileSheet"));
+
+/** Mobile (< 768px) Menu button. The full-screen <dialog> sheet is fetched on first use. */
 export function MobileMenu() {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  function open() {
-    const d = dialogRef.current;
-    if (!d || d.open) return;
-    d.showModal();
-    buttonRef.current?.setAttribute("aria-expanded", "true");
-    document.documentElement.classList.add("is-locked");
-  }
-
-  function close() {
-    dialogRef.current?.close();
-  }
-
-  function onClose() {
-    buttonRef.current?.setAttribute("aria-expanded", "false");
-    document.documentElement.classList.remove("is-locked");
-  }
+  const [openCount, setOpenCount] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+  const onClosed = useCallback(() => setExpanded(false), []);
 
   return (
     <>
       <button
-        ref={buttonRef}
         type="button"
         className="icon-btn md:hidden"
         aria-haspopup="dialog"
-        aria-expanded="false"
-        aria-controls="mobile-menu"
-        onClick={open}
+        aria-expanded={expanded}
+        aria-controls={openCount > 0 ? "mobile-menu" : undefined}
+        onClick={() => {
+          setOpenCount((n) => n + 1);
+          setExpanded(true);
+        }}
       >
         <IconMenu size={22} />
         <span className="max-[379px]:sr-only">{nav.menu.open}</span>
       </button>
-
-      <dialog id="mobile-menu" ref={dialogRef} className="sheet" aria-label={nav.menu.title} onClose={onClose}>
-        <div className="container-site flex items-center justify-between pt-5 pb-2">
-          <span className="wordmark" aria-hidden="true">
-            {owner.wordmark}
-            <span className="dot">.</span>
-          </span>
-          <button type="button" className="icon-btn icon-btn-outline" onClick={close} aria-label={nav.menu.closeLabel}>
-            <IconClose size={22} />
-          </button>
-        </div>
-        <nav aria-label={nav.menu.title} className="container-site flex-1 pt-6">
-          <ul className="flex flex-col">
-            {navLinks.map((l) => (
-              <li key={l.href} className="border-b border-line">
-                <Link href={l.href} onClick={close} className="flex min-h-[64px] items-center text-display-m no-underline">
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-8 flex flex-wrap gap-2">
-            <ThemeToggle display="text" className="icon-btn-outline" />
-            <MotionToggle display="text" className="icon-btn-outline" />
-          </div>
-        </nav>
-        <div className="container-site pb-[max(24px,env(safe-area-inset-bottom))] pt-6">
-          <Link href={nav.cta.href} onClick={close} className={btnClass("primary", "md", "w-full")}>
-            {nav.cta.label}
-          </Link>
-        </div>
-        {/* the page is inert while the menu is open: its toasts show here */}
-        <Toaster scope="mobile-menu" />
-      </dialog>
+      {openCount > 0 ? (
+        <Suspense fallback={null}>
+          <MobileSheet openCount={openCount} onClosed={onClosed} />
+        </Suspense>
+      ) : null}
     </>
   );
 }

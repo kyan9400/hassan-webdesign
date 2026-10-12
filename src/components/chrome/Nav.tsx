@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { RouteLink as Link } from "@/components/ui/RouteLink";
 import { useEffect, useRef } from "react";
 import { nav, navLinks, owner, waLink } from "@/data/site";
 import { btnClass } from "@/components/ui/Button";
@@ -86,7 +86,7 @@ export function Nav() {
           <MotionToggle />
         </div>
 
-        <Link href={nav.cta.href} className={btnClass("primary", "sm", "hidden md:inline-flex ml-1")}>
+        <Link href={nav.cta.href} className={btnClass("primary", "sm", "hidden md:inline-flex ml-1")} data-magnetic>
           {nav.cta.label}
         </Link>
 

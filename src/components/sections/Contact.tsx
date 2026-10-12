@@ -1,6 +1,7 @@
 import { contact, contactSection } from "@/data/site";
 import { SpecimenLabel } from "@/components/ui/SpecimenLabel";
 import { CopyButton } from "@/components/ui/CopyButton";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 
 /** Static hummingbird drinking from a bloom (no animation). */
 function SippingBird() {
@@ -32,19 +33,20 @@ export function Contact() {
   return (
     <section id="contact" tabIndex={-1} aria-labelledby="contact-title" className="section-pad">
       <div className="container-site">
-        <div className="contact-panel relative overflow-hidden rounded-[36px] px-6 py-12 md:px-14 md:py-16">
+        <div className="contact-panel relative overflow-hidden rounded-[36px] px-6 py-12 md:px-16 md:py-16">
           <div className="pointer-events-none absolute right-3 top-3 opacity-95 sm:right-6 sm:top-6 md:right-10 md:top-8">
             <SippingBird />
           </div>
           <div className="relative max-w-[640px] pr-0 md:pr-24">
             <SpecimenLabel tone="onDark">{contactSection.eyebrow}</SpecimenLabel>
-            <h2 id="contact-title" className="text-display-l mt-4 max-w-[16ch] pt-16 md:pt-0">
+            {/* the closing statement: the same display size as the hero headline */}
+            <SectionTitle id="contact-title" className="text-display-xl mt-4 max-w-[12ch] pt-16 md:pt-0">
               {contactSection.title}
-            </h2>
-            <p className="text-lead mt-5 text-contact-soft">{contactSection.text}</p>
+            </SectionTitle>
+            <p className="text-lead mt-6 text-contact-soft">{contactSection.text}</p>
           </div>
 
-          <ul className="relative mt-10 grid gap-3 md:grid-cols-2 md:gap-4">
+          <ul className="relative mt-12 grid gap-3 md:mt-16 md:grid-cols-2 md:gap-4">
             {contactSection.channels.map((c) => (
               <li key={c.id} className="relative">
                 <a
@@ -52,10 +54,16 @@ export function Contact() {
                   {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   aria-label={c.ariaLabel}
                   className={`channel h-full ${c.id === "email" ? "pr-16 sm:pr-28" : ""}`}
+                  {...(c.id !== "github" ? { "data-magnetic": "" } : {})}
                 >
                   <span className="text-label text-contact-soft">{c.label}</span>
                   <span className="text-base font-semibold [overflow-wrap:anywhere] sm:text-lg">{c.value}</span>
-                  <span className="mt-1 font-medium text-contact-text underline decoration-[#F07A9A] decoration-2 underline-offset-4">{c.action}</span>
+                  <span className="mt-2 inline-flex items-baseline gap-2 font-medium text-contact-text">
+                    <span className="underline decoration-[#F07A9A] decoration-2 underline-offset-4">{c.action.replace(/\s*→$/, "")}</span>
+                    <span className="channel-arrow" aria-hidden="true">
+                      →
+                    </span>
+                  </span>
                 </a>
                 {c.id === "email" ? (
                   <CopyButton

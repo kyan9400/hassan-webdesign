@@ -3,7 +3,7 @@
 import { nav } from "@/data/site";
 import { setMotion, useMotion } from "@/lib/motion";
 import { IconMotion } from "@/components/ui/icons";
-import { toast } from "@/components/ui/Toast";
+import { toast } from "@/lib/toast";
 
 type Props = {
   /** "auto": icon + text from lg up, icon-only below. "text": always icon + text. */
