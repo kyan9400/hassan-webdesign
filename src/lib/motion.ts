@@ -3,8 +3,8 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Motion preference. Reduced motion is respected BY DEFAULT (prefers-reduced-motion), but a visible
- * "Turn on full motion" toggle overrides it and is remembered in localStorage["hw:motion"].
+ * Motion preference. Every visit starts in full motion (the 3D is the point of the site); the visible
+ * "Reduce motion" toggle switches it off and is remembered in localStorage["hw:motion"].
  * `?motion=full` in the URL overrides everything. The resolved value lives on <html data-motion>,
  * set before paint by the inline head script, so CSS can read it without waiting for React.
  */
@@ -30,7 +30,7 @@ function computeMotion(): Motion {
     stored = null;
   }
   if (stored === "full" || stored === "reduced") return stored;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "reduced" : "full";
+  return "full";
 }
 
 export function getMotion(): Motion {
@@ -62,16 +62,8 @@ export function toggleMotion(): Motion {
 
 export function subscribeMotion(callback: () => void): () => void {
   listeners.add(callback);
-  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const onChange = () => {
-    // Follows the OS only while the visitor has not chosen explicitly (computeMotion checks that).
-    document.documentElement.setAttribute("data-motion", computeMotion());
-    callback();
-  };
-  mq.addEventListener("change", onChange);
   return () => {
     listeners.delete(callback);
-    mq.removeEventListener("change", onChange);
   };
 }
 
