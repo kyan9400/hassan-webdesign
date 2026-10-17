@@ -23,6 +23,7 @@ import { getMotion } from "@/lib/motion";
 import { subscribeScrollFrame } from "@/lib/scroll-progress";
 import { clamp } from "@/lib/damp";
 import { afterHeroSettled, afterLoadIdle } from "@/lib/three-gate";
+import { basePath, hasProjectPanel } from "@/lib/pages";
 import { announce } from "@/components/ui/LiveRegion";
 import { btnClass } from "@/components/ui/Button";
 import { IconArrowLeft, IconArrowRight } from "@/components/ui/icons";
@@ -414,7 +415,7 @@ export function Glasshouse({ projects, shots }: Props) {
         // keep focus on the item that is now active (the old one may be clipped out of the rail);
         // in cards, the Details link, so Enter opens the panel rather than leaving for the live site
         const li = cardItems()[clamp(target, 0, nn - 1)];
-        li?.querySelector<HTMLElement>(m === "3d" ? "a.gh-idx" : '.gh-card a[href^="/work/"]')?.focus({ preventScroll: true });
+        li?.querySelector<HTMLElement>(m === "3d" ? "a.gh-idx" : `.gh-card a[href^="${basePath}/work/"]`)?.focus({ preventScroll: true });
       }
     },
     [currentList, go, pendingIndex, cardItems],
@@ -425,7 +426,7 @@ export function Glasshouse({ projects, shots }: Props) {
     (slug: string) => {
       const link = indexEl?.querySelector<HTMLAnchorElement>(`a[data-slug="${slug}"]`);
       link?.focus({ preventScroll: true });
-      router.push(`/work/${slug}`, { scroll: false });
+      router.push(`/work/${slug}`, { scroll: !hasProjectPanel });
     },
     [indexEl, router],
   );

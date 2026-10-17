@@ -2,6 +2,9 @@ import type { MetadataRoute } from "next";
 import { projects } from "@/data/projects";
 import { siteUrl } from "@/data/site";
 
+// already static; the static export (GitHub Pages mirror) needs it said explicitly
+export const dynamic = "force-static";
+
 // the build date: every page is static, so it changes only when the site is rebuilt
 const lastModified = new Date();
 

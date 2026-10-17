@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { ProjectCard as Project } from "@/data/sectors";
 import { pad2 } from "@/data/sectors";
 import { work } from "@/data/site";
+import { ghPages, withBase } from "@/lib/pages";
 
 type Props = {
   project: Project;
@@ -24,6 +25,7 @@ const optimized = (src: string, w: number) => `/_next/image?url=${encodeURICompo
  * placeholder in the project's accent colour. Missing screenshots never break the build.
  * A plain responsive <img> through the Next image optimizer: the same files next/image would
  * serve, without shipping its client component in the first-load bundle.
+ * The GitHub Pages mirror has no optimizer: it serves the file itself (they are small WebPs).
  */
 export function ScreenshotFrame({ project, kind, available, sizes, eager = false, className = "" }: Props) {
   const desktop = kind === "desktop";
@@ -38,8 +40,8 @@ export function ScreenshotFrame({ project, kind, available, sizes, eager = false
       {available ? (
         // eslint-disable-next-line @next/next/no-img-element -- optimizer URLs written by hand (see above)
         <img
-          src={optimized(src, desktop ? 1080 : 384)}
-          srcSet={widths.map((w) => `${optimized(src, w)} ${w}w`).join(", ")}
+          src={ghPages ? withBase(src) : optimized(src, desktop ? 1080 : 384)}
+          srcSet={ghPages ? undefined : widths.map((w) => `${optimized(src, w)} ${w}w`).join(", ")}
           sizes={sizes}
           alt={desktop ? project.screenshots.alt : project.screenshots.altMobile}
           width={desktop ? 1600 : 780}

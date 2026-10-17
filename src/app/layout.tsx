@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Fraunces, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 import "./globals.css";
-import { seo, siteUrl } from "@/data/site";
+import { canonical, seo, siteUrl } from "@/data/site";
 import { themeMotionScript } from "@/lib/head-script";
 import { SkipLink } from "@/components/chrome/SkipLink";
 import { Nav } from "@/components/chrome/Nav";
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   applicationName: seo.siteName,
   authors: [{ name: "Alhassan Alfarran", url: "https://github.com/kyan9400" }],
   creator: "Alhassan Alfarran",
-  alternates: { canonical: "/" },
+  alternates: { canonical: canonical("/") },
   openGraph: {
     type: "website",
     locale: "en_US",

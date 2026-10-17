@@ -2,6 +2,9 @@ import { ImageResponse } from "next/og";
 import { projects } from "@/data/projects";
 import { ogFonts, publicDataUri } from "@/lib/og";
 
+// already static; the static export (GitHub Pages mirror) needs it said explicitly
+export const dynamic = "force-static";
+
 export const alt = "Websites that feel alive — Alhassan Alfarran, web design, 3D websites and AI tools";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

@@ -4,6 +4,7 @@
  * falls back to a placeholder and never breaks the build.
  */
 
+import { ghPages } from "@/lib/pages";
 import { PROJECT_COUNT, type ProjectCard, type Sector } from "./sectors";
 
 export { PROJECT_COUNT, SECTORS, pad2, type ProjectCard, type Sector } from "./sectors";
@@ -45,7 +46,7 @@ const shots = (slug: string, alt: string, altMobile: string) => ({
 
 const NEXT_R3F = ["Next.js 16", "React Three Fiber", "Three.js", "GLSL shaders", "TypeScript"];
 
-export const projects: Project[] = [
+const list: Project[] = [
   {
     slug: "skybloom-3d", order: 1, name: "Skybloom", sector: "real-estate", sectorLabel: "Eco-city developer",
     oneLiner: "A developer's site that opens on a green city at golden hour, then sinks it and grows it again as you read.",
@@ -236,6 +237,11 @@ export const projects: Project[] = [
     madeInCode: false, credits: "Car model: third-party asset, credited on the live site.", year: 2026,
   },
 ];
+
+// the GitHub Pages mirror links each site's own Pages copy (repo name = slug): vercel.app is blocked by some providers
+export const projects: Project[] = ghPages
+  ? list.map((p) => ({ ...p, liveUrl: p.liveUrl && `https://kyan9400.github.io/${p.slug}/` }))
+  : list;
 
 // the client copy ("04 / 11") uses a constant: keep it in step with the list
 if (projects.length !== PROJECT_COUNT) throw new Error(`PROJECT_COUNT is ${PROJECT_COUNT}, but there are ${projects.length} projects`);

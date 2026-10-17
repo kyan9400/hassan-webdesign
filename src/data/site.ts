@@ -2,6 +2,8 @@
  * All non-project copy for the site lives here. Components never hard-code strings.
  */
 
+import { ghPages } from "@/lib/pages";
+
 export const owner = {
   name: "Alhassan Alfarran",
   wordmark: "Hassan",
@@ -27,7 +29,14 @@ export function mailLink(subject: string): string {
 }
 
 // fixed on purpose: a preview URL in the environment must never leak into canonical / sitemap / JSON-LD
-export const siteUrl = "https://hassan-webdesign.vercel.app";
+export const primaryUrl = "https://hassan-webdesign.vercel.app";
+// the GitHub Pages mirror (for providers that block vercel.app) builds its own absolute URLs
+export const siteUrl = ghPages ? "https://kyan9400.github.io/hassan-webdesign" : primaryUrl;
+
+/** Canonical URL of a path: the mirror points search engines at the Vercel original. */
+export function canonical(path: string): string {
+  return ghPages ? `${primaryUrl}${path}` : path;
+}
 
 export const seo = {
   homeTitle: "Alhassan Alfarran — Web Design, 3D Websites & Landing Pages",

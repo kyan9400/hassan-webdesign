@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, projects } from "@/data/projects";
 import { shotFlags } from "@/data/screenshots.server";
-import { contact, mailLink, owner, projectCase, seo, siteUrl, waLink } from "@/data/site";
+import { canonical, contact, mailLink, owner, projectCase, seo, siteUrl, waLink } from "@/data/site";
 import { ProjectCase } from "@/components/work/ProjectCase";
 import { btnClass } from "@/components/ui/Button";
 
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: { canonical: `/work/${p.slug}` },
+    alternates: { canonical: canonical(`/work/${p.slug}`) },
     openGraph: { type: "website", locale: "en_US", siteName: seo.siteName, title, description, url: `/work/${p.slug}` },
     twitter: { card: "summary_large_image", title, description },
   };

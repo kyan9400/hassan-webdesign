@@ -8,12 +8,14 @@ import {
 } from "three";
 import type { ProjectCard as Project } from "@/data/sectors";
 import { pad2 } from "@/data/sectors";
+import { ghPages, withBase } from "@/lib/pages";
 
 /**
  * Texture pipeline for the glasshouse panes.
  *  - GPU copies come from the Next image optimizer, so the 3D never uploads a 1600 px texture:
  *    /_next/image?url=…&w=1080|828|384&q=75 (default deviceSizes / imageSizes / quality in Next 16).
- *    If that request fails, the raw file is used.
+ *    If that request fails, the raw file is used. The GitHub Pages mirror loads pre-sized copies
+ *    from /work/w/ instead (written by npm run build:pages).
  *  - Decoded off the main thread with ImageBitmapLoader (flipY at decode, texture.flipY = false),
  *    sRGB, mipmaps (the panes' "frost" samples the mip chain), anisotropy per tier.
  *  - Placeholders (accent gradient + name in Fraunces) are CanvasTextures drawn in code — shown until
@@ -21,6 +23,8 @@ import { pad2 } from "@/data/sectors";
  */
 
 export function textureUrl(src: string, w: number): string {
+  // GitHub Pages mirror: no optimizer, npm run build:pages writes the same widths to /work/w/
+  if (ghPages) return withBase(src.replace("/work/", "/work/w/").replace(/\.webp$/, `-${w}.webp`));
   return `/_next/image?url=${encodeURIComponent(src)}&w=${w}&q=75`;
 }
 
@@ -49,7 +53,7 @@ function toTexture(bitmap: ImageBitmap, anisotropy: number): Texture {
 /** Load a screenshot as a texture: optimizer first, raw file as the fallback, null if both fail. */
 export async function loadShot(src: string, width: number, anisotropy: number): Promise<Texture | null> {
   const l = getLoader();
-  for (const url of [textureUrl(src, width), src]) {
+  for (const url of [textureUrl(src, width), withBase(src)]) {
     try {
       const bitmap = (await l.loadAsync(url)) as ImageBitmap;
       return toTexture(bitmap, anisotropy);
