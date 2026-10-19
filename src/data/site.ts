@@ -15,7 +15,8 @@ export const contact = {
   email: "kyan775909@gmail.com",
   telegram: { handle: "@hassan_9400", url: "https://t.me/hassan_9400" },
   github: "https://github.com/kyan9400",
-  mainPortfolio: "https://alhassan-portfolio-sigma.vercel.app",
+  // the Pages mirror links the Pages copy of the main portfolio (vercel.app is blocked in some regions)
+  mainPortfolio: ghPages ? "https://kyan9400.github.io/alhassan_portfolio/" : "https://alhassan-portfolio-sigma.vercel.app",
 } as const;
 
 /** WhatsApp link with a prefilled message. */
@@ -350,8 +351,8 @@ export const contactSection = {
   copy: "Copy",
   copied: "Copied",
   copyLabel: "Copy the email address",
-  more: "More about me: alhassan-portfolio-sigma.vercel.app ↗",
-  moreLabel: "More about me: alhassan-portfolio-sigma.vercel.app (opens in a new tab)",
+  more: `More about me: ${ghPages ? "kyan9400.github.io/alhassan_portfolio" : "alhassan-portfolio-sigma.vercel.app"} ↗`,
+  moreLabel: `More about me: ${ghPages ? "kyan9400.github.io/alhassan_portfolio" : "alhassan-portfolio-sigma.vercel.app"} (opens in a new tab)`,
 } as const;
 
 export const footer = {
