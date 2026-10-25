@@ -19,6 +19,9 @@ export const contact = {
   mainPortfolio: ghPages ? "https://kyan9400.github.io/alhassan_portfolio/" : "https://alhassan-portfolio-sigma.vercel.app",
 } as const;
 
+/** The live demo of Lumen Search, my AI document search; it runs on GitHub Pages, so it opens everywhere. */
+export const lumenSearchDemo = "https://kyan9400.github.io/lumen-search/";
+
 /** WhatsApp link with a prefilled message. */
 export function waLink(text: string): string {
   return `${contact.whatsapp.url}?text=${encodeURIComponent(text)}`;
@@ -283,10 +286,16 @@ export const about = {
   paragraphs: [
     "I'm Alhassan Alfarran, a web designer and front-end developer. I design the page, write the code and put it online — so the person you explain your business to is the person who builds it.",
     "I care about the details people feel but rarely name: a site that opens instantly on a mid-range phone, buttons big enough for thumbs, text that's easy to read, motion that never gets in the way. Every 3D scene in my ten newest sites is modelled in code, renders only when something changes, and is tested on an ordinary laptop.",
+    "I also build AI tools. Lumen Search, for example, finds answers in PDFs, Word and Excel files and scanned documents, in English and Russian, and shows where each answer comes from.",
     "Want the bigger picture? My main portfolio has my full experience and other projects.",
   ],
   links: [
     { label: "Visit my main portfolio ↗", href: contact.mainPortfolio, ariaLabel: "Visit my main portfolio (opens in a new tab)" },
+    {
+      label: "Try Lumen Search ↗",
+      href: lumenSearchDemo,
+      ariaLabel: "Try Lumen Search, an AI document search demo (opens in a new tab)",
+    },
     { label: "GitHub ↗", href: contact.github, ariaLabel: "GitHub profile (opens in a new tab)" },
   ],
 } as const;
