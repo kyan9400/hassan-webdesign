@@ -1,0 +1,8 @@
+1:"$Sreact.fragment"
+3:X
+0:{"buildId":"vX1tXrZ2P9zjxMZf9l4Qr","data":[{"rsc":["$","$1","c",{"children":[null,null,null]}],"isPartial":"$@2","staleTime":"$3","varyParams":null}],"isUpgradeableISRFallback":false,"a":"$@4","rootVaryParams":null,"needsRuntimeRequest":"$@5"}
+5:true
+3:300
+3:C
+4:0
+2:"$undefined"
